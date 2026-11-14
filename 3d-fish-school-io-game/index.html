@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Nibblefin Lagoon</title>
+<link rel="icon" href="data:,">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#0c5f73;color:#fff;font-family:ui-rounded,system-ui,sans-serif;font-weight:700;user-select:none;-webkit-user-select:none;touch-action:none}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+#vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 46%,rgba(0,60,80,0) 52%,rgba(0,46,66,.42) 100%)}
+button{font:inherit;color:inherit;border:0;cursor:pointer}
+.hide{display:none!important}
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4em;min-height:44px;padding:.45em 1.2em;border-radius:999px;background:linear-gradient(#ffe680,#ffc233);color:#6b3200;font-weight:900;font-size:clamp(15px,2.3vmin,20px);box-shadow:0 4px 0 #c7811a,0 8px 14px rgba(0,40,60,.3);transition:transform .08s;white-space:nowrap}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #c7811a}
+.btn:focus-visible,.chip:focus-visible,.item:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.btn.alt{background:linear-gradient(#5fe0d2,#1fb6b0);color:#06383f;box-shadow:0 4px 0 #0f7f80,0 8px 14px rgba(0,40,60,.3)}
+.btn.red{background:linear-gradient(#ff9d8a,#ff6a5c);color:#5c0d0d;box-shadow:0 4px 0 #b83a34,0 8px 14px rgba(0,40,60,.3)}
+.btn.big{font-size:clamp(20px,4.2vmin,32px);padding:.4em 2em}
+.btn[disabled]{filter:grayscale(.7);opacity:.6;cursor:default}
+/* ---------- title ---------- */
+#s-title{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:min(2.4vh,18px);padding:12px;text-align:center;background:radial-gradient(ellipse at 50% 40%,rgba(6,70,90,.1),rgba(4,50,70,.34))}
+.logo{font-weight:900;line-height:.86;letter-spacing:.01em;font-size:clamp(40px,min(15.5vw,17vh),128px);transform:rotate(-3deg);filter:drop-shadow(0 8px 0 rgba(0,50,70,.35))}
+.logo span{display:block;-webkit-text-stroke:.09em #0a4b63;paint-order:stroke fill}
+.logo .l1{color:#ffd23c}.logo .l2{color:#ff7d5c;font-size:.82em;margin-inline-start:.9em}
+.tag{font-size:clamp(14px,2.6vmin,22px);background:rgba(4,60,80,.6);padding:.25em 1em;border-radius:999px}
+.row{display:flex;flex-wrap:wrap;gap:10px 12px;justify-content:center;align-items:center}
+.coins{position:fixed;top:10px;inset-inline-end:12px;background:rgba(4,60,80,.72);padding:.3em .9em;border-radius:999px;font-size:clamp(14px,2.2vmin,18px)}
+.coins b{color:#ffd23c}
+@media (max-height:480px){#s-title{flex-direction:row;flex-wrap:wrap;gap:10px 28px;align-content:center}.logo{font-size:clamp(34px,19vh,72px)}#s-title .col{display:flex;flex-direction:column;gap:10px;align-items:center;max-width:52vw}.tag{font-size:13px}.btn{min-height:38px}}
+#s-title .col{display:flex;flex-direction:column;gap:min(2.2vh,16px);align-items:center}
+/* ---------- panels ---------- */
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:10px;background:rgba(4,50,70,.45)}
+.panel{width:min(760px,100%);max-height:100%;overflow-y:auto;background:linear-gradient(rgba(14,104,128,.96),rgba(8,76,100,.96));border:3px solid rgba(255,255,255,.28);border-radius:26px;padding:clamp(12px,2.4vmin,22px);box-shadow:0 14px 40px rgba(0,30,50,.5);touch-action:pan-y}
+.panel.side{align-self:stretch;margin-inline-start:auto;width:min(430px,100%)}
+#s-wardrobe{justify-content:flex-end;background:none}
+@media (max-aspect-ratio:1/1){#s-wardrobe{align-items:flex-end;justify-content:center}#s-wardrobe .panel.side{align-self:flex-end;width:100%;max-height:56%;margin:0}}
+.head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+h2{font-size:clamp(20px,3.6vmin,30px);font-weight:900;color:#ffd23c}
+h3{font-size:clamp(14px,2.2vmin,17px);margin:10px 0 6px;color:#aef3ea;font-weight:900}
+p,li{font-size:clamp(13px,2.1vmin,16px);font-weight:600;line-height:1.35}
+ul{padding-inline-start:1.2em;display:grid;gap:5px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.chip{display:block;width:100%;text-align:start;background:rgba(255,255,255,.12);border:3px solid transparent;border-radius:16px;padding:8px 12px;font-weight:800;font-size:clamp(14px,2.2vmin,17px)}
+.chip small{display:block;font-weight:600;font-size:.8em;opacity:.88;white-space:normal;line-height:1.25}
+.chip.on{background:rgba(255,210,60,.24);border-color:#ffd23c}
+.seg{display:inline-flex;background:rgba(0,0,0,.22);border-radius:999px;padding:3px;flex-wrap:wrap}
+.seg button{padding:.35em .9em;border-radius:999px;background:none;font-weight:800;font-size:clamp(13px,2vmin,16px);min-height:36px}
+.seg button.on{background:#ffd23c;color:#6b3200}
+.set{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.12);flex-wrap:wrap}
+.set label{font-size:clamp(14px,2.2vmin,17px)}
+input[type=range]{width:min(220px,46vw);accent-color:#ffd23c;height:28px}
+table{width:100%;border-collapse:collapse;font-size:clamp(12px,2.1vmin,16px)}
+td,th{padding:5px 6px;text-align:start;border-bottom:1px solid rgba(255,255,255,.14);font-weight:700}
+th{color:#aef3ea;font-size:.85em}
+tr.me td{color:#ffd23c}
+td.n,th.n{text-align:end}
+.dot{display:inline-block;width:.8em;height:.8em;border-radius:50%;margin-inline-end:.4em;vertical-align:-.05em;border:2px solid rgba(255,255,255,.7)}
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.item{background:rgba(255,255,255,.12);border:3px solid transparent;border-radius:14px;padding:8px;text-align:center;font-size:14px;font-weight:800}
+.item small{display:block;font-weight:700;opacity:.9;margin-top:2px}
+.item.on{border-color:#ffd23c;background:rgba(255,210,60,.24)}
+.item.locked small{color:#ffd23c}
+.sw{display:inline-block;width:22px;height:22px;border-radius:50%;border:2px solid #fff;vertical-align:middle;margin-inline-end:4px}
+.big-result{font-size:clamp(24px,5vmin,42px);font-weight:900;color:#ffd23c;text-align:center;-webkit-text-stroke:.06em #0a4b63;paint-order:stroke fill}
+.center{text-align:center}.mt{margin-top:12px}
+#s-podium{align-items:flex-end;background:none;padding-bottom:max(10px,2vh)}
+#s-podium .panel{width:min(600px,100%);max-height:47%;padding:10px 16px}
+#s-podium td,#s-podium th{padding:2px 6px}
+#s-selftest .panel{width:min(980px,100%)}
+#s-selftest td{font-size:clamp(11px,1.7vmin,14px);font-weight:600;word-break:break-word}
+.ok{color:#8dffb0;font-weight:900}.bad{color:#ffb0a0;font-weight:900}
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none}
+#hud .top{position:absolute;top:8px;left:50%;transform:translateX(-50%);text-align:center}
+#timer{font-size:clamp(22px,4.4vmin,46px);font-weight:900;background:rgba(4,60,80,.72);padding:.05em .7em;border-radius:999px;display:inline-block;font-variant-numeric:tabular-nums}
+#goal{font-size:clamp(11px,1.9vmin,19px);margin-top:3px;background:rgba(4,60,80,.6);padding:.1em .8em;border-radius:999px;display:inline-block}
+#board{position:absolute;top:8px;inset-inline-start:8px;background:rgba(4,60,80,.66);border-radius:14px;padding:5px 9px;font-size:clamp(11px,1.9vmin,19px);min-width:9.5em}
+#board div{display:flex;justify-content:space-between;gap:.8em;line-height:1.45;white-space:nowrap}
+#board div.me{color:#ffd23c}
+#board span:last-child{font-variant-numeric:tabular-nums}
+#mapbox{position:absolute;top:8px;inset-inline-end:8px;display:flex;gap:6px;align-items:flex-start}
+#map{width:clamp(72px,15vmin,116px);height:clamp(72px,15vmin,116px);border-radius:50%;background:rgba(4,60,80,.66);border:2px solid rgba(255,255,255,.4)}
+#pauseBtn{pointer-events:auto;width:44px;height:44px;border-radius:50%;background:rgba(4,60,80,.8);font-size:18px;font-weight:900;border:2px solid rgba(255,255,255,.4)}
+#status{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100vw - 16px)}
+.stat{background:rgba(4,60,80,.72);border-radius:14px;padding:3px 10px;font-size:clamp(11px,1.9vmin,19px);text-align:center;line-height:1.25}
+.stat b{display:block;font-size:1.35em;color:#ffd23c;font-variant-numeric:tabular-nums}
+#mySize b{font-size:1.9em}
+.stat.dim b{color:#9fc3cc}
+.lab{position:absolute;left:0;top:0;transform:translate(-50%,-100%);font-size:clamp(11px,1.8vmin,19px);white-space:nowrap;text-shadow:0 1px 0 #053a4d,0 0 4px #053a4d,0 0 2px #053a4d;text-align:center;line-height:1.05;will-change:transform}
+.lab b{display:block;font-size:1.2em;color:#ffe680}
+#toasts{position:fixed;top:clamp(64px,13vh,96px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(92vw,520px)}
+.toast{background:rgba(255,210,60,.95);color:#5c2c00;border-radius:16px;padding:.3em 1em;font-size:clamp(13px,2.2vmin,22px);font-weight:900;text-align:center;max-width:100%;overflow-wrap:anywhere;animation:pop .25s}
+#caption{position:fixed;bottom:clamp(74px,17vh,150px);left:50%;transform:translateX(-50%);width:max-content;max-width:min(92vw,760px);background:rgba(4,60,80,.86);border:2px solid rgba(255,255,255,.35);border-radius:18px;padding:.4em 1em;font-size:clamp(14px,2.4vmin,24px);text-align:center;pointer-events:none;overflow-wrap:anywhere}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+/* ---------- touch ---------- */
+#touch{position:fixed;inset:0;pointer-events:none}
+#stick{position:absolute;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;background:rgba(255,255,255,.14);border:3px solid rgba(255,255,255,.5)}
+#stick i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px;border-radius:50%;background:rgba(255,210,60,.9)}
+.tbtn{position:absolute;pointer-events:auto;width:84px;height:84px;border-radius:50%;font-weight:900;font-size:15px;background:rgba(255,210,60,.88);color:#6b3200;border:3px solid rgba(255,255,255,.7);bottom:22px;inset-inline-end:16px;touch-action:none}
+#tPow{bottom:118px;inset-inline-end:26px;width:70px;height:70px;background:rgba(95,224,210,.9);color:#06383f;font-size:12px;line-height:1.05}
+.lefty .tbtn{inset-inline-end:auto;inset-inline-start:16px}.lefty #tPow{inset-inline-start:26px}
+.touching #status{bottom:auto;top:clamp(52px,11vh,80px)}
+@media (max-aspect-ratio:1/1){.touching #status{top:142px}.touching #toasts{top:200px}}
+.touching #toasts{top:clamp(104px,22vh,150px)}
+#cover{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;padding:4vmin 5vmin;gap:1.6vmin}
+#cover .logo{font-size:clamp(40px,13vmin,150px)}
+#cover .tag{font-size:clamp(14px,3vmin,30px)}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="vig"></div>
+<div id="labels"></div>
+<div id="hud" class="hide">
+  <div id="board"></div>
+  <div class="top"><div id="timer">3:00</div><br><div id="goal" class="hide"></div></div>
+  <div id="mapbox"><canvas id="map" width="232" height="232"></canvas><button id="pauseBtn" aria-label="Pause">II</button></div>
+  <div id="status">
+    <div class="stat" id="stSchool"><span></span><b>0/10</b></div>
+    <div class="stat" id="mySize"><span></span><b>100</b></div>
+    <div class="stat" id="stDash"><span></span><b>-</b></div>
+    <div class="stat" id="stPow"><span></span><b>-</b></div>
+  </div>
+</div>
+<div id="touch" class="hide"><div id="stick" class="hide"><i></i></div><button class="tbtn" id="tDash"></button><button class="tbtn" id="tPow"></button></div>
+<div id="screens"></div>
+<div id="cover" class="hide"></div>
+<div id="caption" class="hide"></div>
+<div id="toasts"></div>
+<script>
+/* =====================================================================
+   CONFIG - everything you may want to change lives here.
+   Distances are in arena units, times in ticks (60 ticks = 1 second)
+   unless a comment says otherwise. Colours are [red, green, blue] 0..1.
+   ===================================================================== */
+const CONFIG = {
+  game: {
+    name: 'Nibblefin Lagoon',            // game name, shown on the title screen and in the tab
+    lang: 'en',                          // language code of every text below
+    dir: 'ltr',                          // text direction: 'ltr' or 'rtl' (menus and HUD mirror with it)
+    saveKey: 'nibblefin-lagoon.save.v1', // versioned localStorage key of the save
+    backupKey: 'nibblefin-lagoon.save.damaged', // where a damaged save is kept
+    tickRate: 60                         // simulation steps per second (fixed)
+  },
+  hero: {                                // the creature you play
+    name: 'Mango',                       // hero name
+    kind: 'pufferling',                  // what it is (used in the how-to text)
+    look: { body: [1.0, 0.56, 0.16], belly: [1.0, 0.86, 0.6], fin: [1.0, 0.42, 0.1], stripe: [0.1, 0.78, 0.72], shape: [1.0, 0.94, 1.0], eye: 1.15, nubs: true } // colours, body stretch [length, height, width], eye scale, puffer nubs
+  },
+  rivals: [                              // the named rivals: they play in every match (slots 1 to 3)
+    { name: 'Grumble', pers: 'hunter', look: { body: [0.55, 0.3, 0.78], belly: [0.8, 0.66, 0.95], fin: [0.4, 0.18, 0.62], stripe: [0.95, 0.75, 0.2], shape: [1.05, 0.9, 1.2], eye: 0.95, brows: true } },   // broad purple hunter
+    { name: 'Zigzag', pers: 'trickster', look: { body: [0.74, 0.8, 0.86], belly: [0.95, 0.97, 1.0], fin: [0.35, 0.6, 0.9], stripe: [0.2, 0.45, 0.9], shape: [1.25, 0.82, 0.72], eye: 0.9, zig: true } },   // slim silver trickster
+    { name: 'Auntie Frond', pers: 'shepherd', look: { body: [0.36, 0.72, 0.36], belly: [0.8, 0.94, 0.66], fin: [0.2, 0.55, 0.3], stripe: [1.0, 0.9, 0.4], shape: [1.0, 1.0, 1.02], eye: 1.05, frond: true } } // calm green shepherd
+  ],
+  extras: [                              // invented extras that fill the other slots, one per personality
+    { name: 'Brisket', pers: 'hunter', look: { body: [0.86, 0.3, 0.3], belly: [1.0, 0.75, 0.7], fin: [0.62, 0.16, 0.2], stripe: [1.0, 0.85, 0.3], shape: [1.05, 0.9, 1.15], eye: 0.95, brows: true } },
+    { name: 'Skitter', pers: 'trickster', look: { body: [0.3, 0.62, 0.9], belly: [0.82, 0.93, 1.0], fin: [0.16, 0.36, 0.72], stripe: [1.0, 1.0, 1.0], shape: [1.25, 0.82, 0.72], eye: 0.9, zig: true } },
+    { name: 'Uncle Moss', pers: 'shepherd', look: { body: [0.93, 0.58, 0.72], belly: [1.0, 0.86, 0.9], fin: [0.8, 0.36, 0.56], stripe: [0.5, 0.86, 0.5], shape: [1.0, 1.0, 1.02], eye: 1.05, frond: true } }
+  ],
+  sizes: {
+    start: 100,          // body size of every creature at the start of a match
+    minReturn: 100,      // a gulped creature never returns below this body size
+    radiusDiv: 5,        // radius in units = integer square root of body size, divided by this
+    food: 3,             // body size gained per piece of plankton
+    foodCount: 200,      // pieces of plankton on the field (100 mirrored pairs)
+    foodRespawn: 1800,   // ticks before an eaten pair of plankton grows back at a new mirrored spot
+    foodRadius: 0.4,     // touch radius of a piece of plankton
+    arenaWidth: 120      // width of the round arena
+  },
+  tiers: {
+    from: [0, 150, 300, 600, 1000],     // body size at which each tier starts
+    speed: [40, 37, 34, 31, 29],        // swim speed per tier in 1/256 unit per tick (each 8% slower)
+    names: ['Nibbler', 'Paddler', 'Cruiser', 'Bruiser', 'Lagoon Giant'], // tier names shown in results
+    accel: 3                            // how quickly creatures reach their speed (sixteenths per tick)
+  },
+  gulp: {
+    num: 115, den: 100,  // A gulps B when den x A's Size >= num x B's Size (1.15 times)
+    gainDiv: 2,          // the gulper gains B's body size divided by this
+    keepDiv: 2,          // the gulped creature returns with its body size divided by this
+    bubbleTicks: 180,    // ticks a gulped creature floats in its bubble (exactly 3 seconds)
+    shieldTicks: 120,    // shield after returning (2 seconds: cannot gulp or be gulped)
+    startShield: 600,    // the player's shield at the start of a match on Easy and Normal (10 seconds; 0 = none)
+    safeSpawn: 10        // never return within this many units of a rival that could gulp you
+  },
+  dash: {
+    num: 9, den: 5,      // dash speed = normal speed x num / den (1.8 times)
+    costEvery: 12,       // one body size is spent every this many dash ticks
+    minBody: 60          // no dash at this body size or less
+  },
+  school: {
+    fryName: 'minnow',   // the small fry of this setting (singular)
+    fryNamePlural: 'minnows', // plural
+    shoalSize: 5,        // small fry per wild shoal
+    eatGain: 10,         // body size for eating a wild one
+    spareRange: 6,       // keep it within this many units of your body's edge...
+    spareTicks: 60,      // ...for this long without touching and it joins
+    max: 10,             // most members a school can have
+    bonus: 15,           // Size added by every member close enough
+    nearRange: 10,       // a member counts only within this many units of your edge
+    dashScatter: 5,      // a dashing bigger rival scatters members within this many units of it
+    safeTicks: 120,      // a scattered small fry cannot be touched for this long
+    respawn: 1800,       // ticks before an eaten small fry grows back in its shoal
+    fryRadius: 0.45,     // body radius of a small fry
+    wildSpeed: 12        // drift speed of wild small fry in 1/256 unit per tick
+  },
+  powerups: {
+    maxOnField: 3,       // most power-ups lying in the arena at once
+    spawnEvery: 420,     // ticks between new power-ups
+    radius: 1.2,         // pick-up radius
+    types: [             // id, name and effect length in ticks
+      { id: 'shield', name: 'Pearl Shell', ticks: 300, info: 'Nobody can gulp you or scatter your school for 5 seconds.' },
+      { id: 'call', name: 'Conch Call', range: 15, info: 'Every wild minnow nearby joins your school.' },
+      { id: 'rush', name: 'Swift Tide', ticks: 240, info: 'Free dash for 4 seconds.' }
+    ]
+  },
+  bots: {
+    difficulties: ['easy', 'normal', 'hard'], // difficulty ids, in order
+    // nine profiles: three personalities at three difficulties.
+    // react = ticks between decisions, sight = how far it sees, dashChase / dashEscape = may it dash to chase / to escape
+    profiles: {
+      hunter:    { easy: { react: 36, sight: 20, dashChase: false, dashEscape: false }, normal: { react: 18, sight: 30, dashChase: true, dashEscape: false }, hard: { react: 8, sight: 40, dashChase: true, dashEscape: true } },
+      shepherd:  { easy: { react: 36, sight: 20, dashChase: false, dashEscape: false }, normal: { react: 18, sight: 30, dashChase: false, dashEscape: false }, hard: { react: 8, sight: 40, dashChase: false, dashEscape: true } },
+      trickster: { easy: { react: 36, sight: 20, dashChase: false, dashEscape: false }, normal: { react: 18, sight: 30, dashChase: true, dashEscape: false }, hard: { react: 8, sight: 40, dashChase: true, dashEscape: true } }
+    },
+    fleeGap: 12,         // a bot runs when a rival that can gulp it is this close (edge to edge)
+    chaseGiveUp: 300,    // a hunter gives up on one target after this many ticks
+    hunterFryTaste: 1,   // 1: hunters go out of their way to eat small fry, 0: they do not
+    shepherdHold: 3,     // the gap a shepherd keeps to a small fry it is sparing
+    shepherdCare: 5,     // shepherds start fleeing this many units earlier, to keep their school
+    shepherdReach: 10,   // a shepherd only goes for a gulp when the smaller one is this close
+    startGrace: 1800     // on Easy and Normal no bot hunts the player for this many ticks after the start (30 seconds; contact still gulps)
+  },
+  modes: {
+    classic:  { name: 'Classic',  ticks: 10800, info: '3 minutes. The biggest Size at the whistle wins.' },                      // match length in ticks
+    survival: { name: 'Survival', bubbles: 3, info: 'Five rivals that return forever. Your run ends at your third bubble.' },    // bubbles until the run ends
+    feast:    { name: 'Feast',    target: 600, ticks: 18000, info: 'The first to reach Size 600 wins at once.' }                 // winning Size and time limit
+  },
+  cup: {
+    name: 'Lagoon Cup',                              // cup name
+    matches: [['classic', 0], ['feast', 1], ['classic', 2], ['feast', 0], ['classic', 1]], // [mode, arena] of the 5 matches
+    points: [10, 7, 5, 3, 2, 1]                      // points for places 1 to 6
+  },
+  coins: { place: [30, 20, 14, 10, 7, 5], perGulp: 3, perMember: 1, survivalDiv: 10, cupBonus: [60, 35, 20] }, // coins per placing, per gulp, per largest-school member, Survival score divider, cup podium bonus
+  arenas: [
+    // every arena: list only the LEFT half (x < 0) and the middle (x = 0); the right half is mirrored for you.
+    { id: 'cove', name: 'Coral Arch Cove', info: 'A current runs down the middle and carries everyone along.',
+      water: [0.1, 0.62, 0.72], sand: [0.95, 0.85, 0.6],      // water tint and sand colour
+      rings: [[-30, -18]],                                    // coral rings: six pillars with gaps only the two smallest tiers fit through
+      posts: [],                                              // single solid posts [x, y]
+      starts: [[-44, 2], [-26, 38], [-22, -42]],              // start slots
+      spawns: [[-50, 14], [-34, 44], [-14, -50], [-16, 22]],  // return points
+      shoals: [[-18, 6], [-42, -38], [-36, 26]],              // wild shoal homes
+      powerSpots: [[-12, -22], [-46, -8], [-22, 50]],         // where power-ups appear
+      hazard: { type: 'current', halfWidth: 5, from: -50, to: 50, push: 20 }, // current along the mirror line, push in 1/256 unit per tick
+      kelpDecor: [[-52, -22], [-8, 44], [-50, 30]],           // decorative kelp tufts (no effect)
+      music: { tempo: 104, root: 57, scale: [0, 2, 4, 7, 9], mood: 'sunny' } },  // music loop: beats per minute, root note, scale steps
+    { id: 'kelp', name: 'Whispering Kelp', info: 'Tall kelp hides the small and slows the big.',
+      water: [0.08, 0.55, 0.5], sand: [0.82, 0.8, 0.56],
+      rings: [[-42, 8]],
+      posts: [],
+      starts: [[-46, -22], [-10, 46], [-12, -48]],
+      spawns: [[-52, -6], [-30, 46], [-38, -40], [-8, 6]],
+      shoals: [[-12, -6], [-44, 30], [-30, -44]],
+      powerSpots: [[-8, 24], [-50, -14], [-24, -52]],
+      hazard: { type: 'kelp', patches: [[-24, -22, 12], [-20, 28, 11]], slowNum: 7, slowDen: 10 }, // kelp patches [x, y, radius]; the three largest tiers swim at slowNum/slowDen speed inside
+      kelpDecor: [[-56, 10]],
+      music: { tempo: 92, root: 53, scale: [0, 3, 5, 7, 10], mood: 'hush' } },
+    { id: 'boat', name: 'Rowboat Rest', info: 'Two gentle sea cows patrol and nudge everyone aside.',
+      water: [0.12, 0.56, 0.78], sand: [0.93, 0.8, 0.62],
+      rings: [],
+      posts: [[-5.5, -7], [-9, -5.5], [-12, -3], [-13.5, 0], [-12, 3], [-9, 5.5], [-5.5, 7]], // the sunken rowboat: its hull posts leave two gaps for the small
+      nook: [0, 0, 5],                                        // the hiding place inside the hull [x, y, radius]
+      starts: [[-48, 30], [-8, 48], [-10, -46]],
+      spawns: [[-34, 0], [-26, 50], [-28, -50], [-6, 22]],
+      shoals: [[-8, -22], [-50, -24], [-24, 36]],
+      powerSpots: [[-10, 34], [-34, -8], [-12, -34]],
+      hazard: { type: 'cows', radius: 5, speed: 14, path: [[-34, -30], [-23, -21], [-18, 0], [-23, 21], [-34, 30], [-45, 21], [-50, 0], [-45, -21]] }, // sea cow patrol loop, speed in 1/256 unit per tick
+      kelpDecor: [[-40, 46], [-52, -38]],
+      music: { tempo: 116, root: 55, scale: [0, 2, 5, 7, 9], mood: 'bouncy' } }
+  ],
+  cosmetics: {                            // the Wardrobe: id, name, price in coins (0 = owned from the start)
+    colour: [
+      { id: 'tangerine', name: 'Tangerine', price: 0, body: [1.0, 0.56, 0.16], belly: [1.0, 0.86, 0.6], fin: [1.0, 0.42, 0.1] },
+      { id: 'rose', name: 'Sea Rose', price: 40, body: [1.0, 0.5, 0.62], belly: [1.0, 0.85, 0.88], fin: [0.9, 0.3, 0.5] },
+      { id: 'lemon', name: 'Lemon Drop', price: 40, body: [1.0, 0.86, 0.25], belly: [1.0, 0.97, 0.75], fin: [0.95, 0.66, 0.1] },
+      { id: 'mint', name: 'Mint Tide', price: 60, body: [0.45, 0.88, 0.7], belly: [0.86, 1.0, 0.92], fin: [0.2, 0.68, 0.55] },
+      { id: 'sky', name: 'Sky Pool', price: 60, body: [0.4, 0.7, 1.0], belly: [0.85, 0.94, 1.0], fin: [0.2, 0.48, 0.9] },
+      { id: 'plum', name: 'Dusk Plum', price: 90, body: [0.66, 0.45, 0.9], belly: [0.9, 0.82, 1.0], fin: [0.45, 0.28, 0.75] }
+    ],
+    pattern: [
+      { id: 'stripe', name: 'Tail Stripe', price: 0 },
+      { id: 'plain', name: 'Plain', price: 0 },
+      { id: 'spots', name: 'Pebble Spots', price: 50 },
+      { id: 'bands', name: 'Tide Bands', price: 80 }
+    ],
+    fin: [
+      { id: 'stubby', name: 'Stubby', price: 0 },
+      { id: 'frilly', name: 'Frilly', price: 60 },
+      { id: 'pointy', name: 'Pointy', price: 60 }
+    ],
+    hat: [
+      { id: 'none', name: 'No Hat', price: 0 },
+      { id: 'shell', name: 'Shell Cap', price: 80 },
+      { id: 'sprout', name: 'Kelp Sprout', price: 80 },
+      { id: 'cone', name: 'Party Cone', price: 120 },
+      { id: 'crown', name: 'Pearl Crown', price: 200 }
+    ],
+    trail: [
+      { id: 'bubbles', name: 'Bubbles', price: 0 },
+      { id: 'sparkle', name: 'Sparkles', price: 70 },
+      { id: 'pearls', name: 'Pearls', price: 70 },
+      { id: 'rainbow', name: 'Rainbow', price: 150 }
+    ]
+  },
+  text: {                                 // every text in the game
+    tagline: 'Eat small. Dodge big. Bring your school.',
+    play: 'Play', cup: 'Cup', survival: 'Survival', wardrobe: 'Wardrobe', settings: 'Settings', howto: 'How to play',
+    back: 'Back', start: 'Start', next: 'Next', again: 'Play again', menu: 'Menu', resume: 'Resume', restart: 'Restart', quit: 'Quit to menu',
+    paused: 'Paused', chooseMode: 'Choose a mode', chooseArena: 'Choose an arena',
+    size: 'Size', gulps: 'Gulps', school: 'School', bestSchool: 'Largest school', bubbles: 'Bubbles', place: 'Place', points: 'Points', coins: 'Coins', score: 'Score', food: 'Plankton',
+    dash: 'Dash', power: 'Power-up', noPower: 'none', dashReady: 'Ready', dashFree: 'Free!', dashNo: 'Too small',
+    youWin: 'You win!', winner: '{name} wins!', timeUp: 'Whistle!', runOver: 'Run over', bestSize: 'Best Size {n}',
+    results: 'Results', earned: '+{n} coins', topTen: 'Survival top ten', noScores: 'No runs yet. Dive in!',
+    cupIntro: 'Five matches of Classic and Feast across the three arenas. Points per placing: 10, 7, 5, 3, 2, 1.',
+    cupMatch: 'Match {n} of {m}', cupStandings: 'Cup standings', cupPodium: 'Podium', cupChampion: '{name} takes the cup!',
+    survivalIntro: 'Five rivals that return forever. The run ends at your third bubble. Your best Size at any moment is the score.',
+    bubblesLeft: 'Bubbles left: {n}',
+    owned: 'Owned', equipped: 'Wearing', buy: 'Get', notEnough: 'Not enough coins yet',
+    catColour: 'Colours', catPattern: 'Patterns', catFin: 'Fins', catHat: 'Hats', catTrail: 'Bubble trails',
+    setMusic: 'Music', setSfx: 'Effects', setDiff: 'Difficulty', setReduced: 'Reduced motion', setCb: 'Colour-blind safe colours', setQuality: 'Quality', setLefty: 'Left-handed touch layout',
+    easy: 'Easy', normal: 'Normal', hard: 'Hard', low: 'Low', high: 'High', on: 'On', off: 'Off',
+    deleteSave: 'Delete save', deleteAsk: 'Delete all coins, cosmetics and scores?', deleteYes: 'Yes, delete', deleteNo: 'Keep it', deleted: 'Save deleted. A fresh one has started.',
+    saveDamaged: 'Your save was damaged. It was kept as a backup and a fresh one has started.',
+    qualityAuto: 'Quality set to {q} for this device. You can change it in Settings.',
+    hintEat: 'Eat the glowing plankton to grow.',
+    hintFlee: 'A spiky diamond marks someone who can gulp you. Swim away!',
+    hintSpare: 'Stay close to a minnow for a second without touching it and it joins your school.',
+    hintDash: 'Hold Dash for a burst of speed. It costs a little body size.',
+    hintRing: 'A round ring marks someone you can gulp.',
+    gulpedYou: '{name} gulped you. Back in 3...',
+    youGulped: 'You gulped {name}!',
+    joined: 'School {n}',
+    scattered: 'Your school was scattered!',
+    gotPower: '{name} ready',
+    shielded: 'Shielded',
+    howtoLines: [
+      'You are Mango the pufferling. Eat glowing plankton to grow.',
+      'Gulp anyone whose Size is clearly smaller than yours (round ring). Flee anyone marked with a spiky diamond.',
+      'Nobody is hurt: a gulped creature floats off in a bubble and pops back after 3 seconds.',
+      'Minnows: touch one to eat it, or stay close for a second without touching and it joins your school.',
+      'Every school member near you adds 15 to your Size. A bigger rival can scatter them, and a dash outruns them.',
+      'Dash is fast but costs body size. Power-ups: Pearl Shell, Conch Call and Swift Tide.',
+      'Mouse: swim to the pointer, left click dash, right click power-up.',
+      'Keys: WASD or arrows, Space dash, E power-up, Esc pause, M mute.',
+      'Gamepad: left stick, right trigger dash, A power-up, Start pause.',
+      'Touch: drag anywhere to swim, use the Dash and Power-up buttons.'
+    ],
+    tour: ['Nibblefin Lagoon', 'Spare a minnow and it joins your school', 'Bigger Size gulps smaller', 'A bigger rival scatters your school', 'Conch Call: every minnow nearby joins', 'The current carries everyone along', 'Tall kelp hides the small and slows the big', 'Gentle sea cows nudge you aside', 'The Lagoon Cup podium'],
+    tourStop: 'Tour stopped',
+    selftest: 'Self test', pass: 'PASS', fail: 'FAIL', running: 'running...',
+    tapToStart: 'Tap or press any key',
+    muted: 'Sound off', unmuted: 'Sound on',
+    left: 'left', go: 'Go!', feastGoal: 'First to Size {n}',
+    tierLine: 'You finished as a {tier}.',
+    noGl: 'This game needs WebGL 2. Please try a current browser.',
+    you: 'You'
+  }
+};
+
+/* =====================================================================
+   SIMULATION - deterministic, fixed 60 Hz, integers only.
+   Positions are fixed-point: 256 = one arena unit. No Math.random,
+   no Math.sin, no floats in anything the self test compares.
+   ===================================================================== */
+const FP = 256;
+function U(v) { return Math.round(v * FP); }            // config units -> fixed-point (config values are exact halves/tenths; rounding is IEEE-exact)
+function isqrt(n) {                                      // integer square root for 0 <= n < 2^32
+  if (n < 1) return 0;
+  let x = n >= 2147483648 ? 65536 : 1 << ((33 - Math.clz32(n)) >> 1);
+  for (;;) { const y = (x + ((n / x) | 0)) >> 1; if (y >= x) return x; x = y; }
+}
+function makeRng(seed) {                                 // xorshift32: integer only
+  let s = (seed >>> 0) || 0x9E3779B9;
+  return {
+    next() { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s; },
+    int(n) { return this.next() % n; }
+  };
+}
+function mixSeed(seed, k) {
+  let h = ((seed >>> 0) ^ Math.imul(k, 0x9E3779B1)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85EBCA6B) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 0xC2B2AE35) >>> 0;
+  return (h ^ (h >>> 16)) >>> 0;
+}
+function radiusOf(body) { return (isqrt(body * 65536) / CONFIG.sizes.radiusDiv) | 0; }
+function tierOf(body) { const f = CONFIG.tiers.from; let t = 0; for (let i = 1; i < f.length; i++) if (body >= f[i]) t = i; return t; }
+function canGulp(sa, sb) { return CONFIG.gulp.den * sa >= CONFIG.gulp.num * sb; }
+
+const SPREAD = [[256, 0], [241, 88], [241, -88], [196, 165], [196, -165]];   // cos, sin x256 of 0, 20 and 40 degrees either way
+const HEX = [[0, -1024], [887, -512], [887, 512], [0, 1024], [-887, 512], [-887, -512]]; // hexagon corners x1024 (integer table)
+const RING_R = 11, PILLAR_R = 2, SMALL_CAP = U(3.2), BIG_MIN = U(3.7);
+
+function buildArena(index) {
+  const d = CONFIG.arenas[index];
+  const A = { index, def: d, R: (CONFIG.sizes.arenaWidth / 2) * FP, rocks: [], nooks: [], starts: [], spawns: [], shoals: [], powerSpots: [], kelp: [], current: null, cows: null };
+  const mir = (list, fn) => { for (const p of list) { fn(U(p[0]), U(p[1]), p); if (p[0] !== 0) fn(-U(p[0]), U(p[1]), p); } };
+  mir(d.rings, (x, y) => {
+    for (const h of HEX) A.rocks.push({ x: x + ((h[0] * RING_R * FP / 1024) | 0), y: y + ((h[1] * RING_R * FP / 1024) | 0), r: PILLAR_R * FP, kind: 'pillar', ring: A.nooks.length });
+    A.nooks.push({ x, y, r: U(RING_R - PILLAR_R), R: RING_R * FP });
+  });
+  mir(d.posts, (x, y) => A.rocks.push({ x, y, r: PILLAR_R * FP, kind: 'post', ring: -1 }));
+  if (d.nook) A.nooks.push({ x: U(d.nook[0]), y: U(d.nook[1]), r: U(d.nook[2]), R: U(d.nook[2] + 3) });
+  // start slots and return points are listed left then right so index parity tells the side
+  mir(d.starts, (x, y) => A.starts.push({ x, y }));
+  mir(d.spawns, (x, y) => A.spawns.push({ x, y }));
+  mir(d.shoals, (x, y) => A.shoals.push({ x, y, side: x < 0 ? -1 : 1 }));
+  mir(d.powerSpots, (x, y) => A.powerSpots.push({ x, y }));
+  const hz = d.hazard;
+  if (hz.type === 'current') A.current = { hw: U(hz.halfWidth), y0: U(hz.from), y1: U(hz.to), push: hz.push };
+  if (hz.type === 'kelp') mir(hz.patches, (x, y, p) => A.kelp.push({ x, y, r: U(p[2]) }));
+  if (hz.type === 'cows') {
+    const path = hz.path.map(p => ({ x: U(p[0]), y: U(p[1]) }));
+    A.cows = { r: U(hz.radius), speed: hz.speed, path, list: [{ x: path[0].x, y: path[0].y, px: path[0].x, py: path[0].y, seg: 0, sign: 1 }, { x: -path[0].x, y: path[0].y, px: -path[0].x, py: path[0].y, seg: 0, sign: -1 }] };
+  }
+  return A;
+}
+
+const PERS = ['hunter', 'trickster', 'shepherd'];
+
+/* opts: { arena, mode, seed, diff, allBots, diffs[6], scripted, events } */
+function createSim(opts) {
+  const C = CONFIG, S = C.school, G = C.gulp;
+  const A = buildArena(opts.arena | 0);
+  const seed = opts.seed >>> 0;
+  const rSlots = makeRng(mixSeed(seed, 1)), rBots = makeRng(mixSeed(seed, 2)), rFood = makeRng(mixSeed(seed, 3)), rPow = makeRng(mixSeed(seed, 4));
+  const FR = U(S.fryRadius), FOODR = U(C.sizes.foodRadius);
+  const NEAR = U(S.nearRange), SPARE = U(S.spareRange), DSCAT = U(S.dashScatter), LAT = U(1.5), ROW0 = U(1.3), ROW = U(1.5);
+  const sim = {
+    arena: A, mode: opts.mode || 'classic', seed, tick: 0, over: false, winner: -1, ranking: null,
+    creatures: [], fry: [], food: [], pups: [], events: opts.events ? [] : null, cows: A.cows ? A.cows.list : [],
+    limit: opts.mode === 'feast' ? C.modes.feast.ticks : opts.mode === 'survival' ? 0 : C.modes.classic.ticks,
+    human: opts.allBots ? -1 : 0, powTimer: C.powerups.spawnEvery, scripted: !!opts.scripted
+  };
+  const ev = (o) => { if (sim.events) sim.events.push(o); };
+
+  // ---- roster: slot 0 you, 1-3 the named rivals, 4-5 extras ----
+  const extraOf = {}; for (const e of C.extras) extraOf[e.pers] = e;
+  const rRoster = opts.rosterSeed === undefined ? rBots : makeRng(mixSeed(opts.rosterSeed, 2));   // a cup keeps one roster for all its matches
+  const a = rRoster.int(3), b = (a + 1 + rRoster.int(2)) % 3;
+  const c3 = 3 - a - b;
+  const roster = [opts.allBots ? extraOf[PERS[c3]] : { name: C.hero.name, pers: null, look: C.hero.look }, C.rivals[0], C.rivals[1], C.rivals[2], extraOf[PERS[a]], extraOf[PERS[b]]];
+  // ---- start slots from their own stream ----
+  const order = [0, 1, 2, 3, 4, 5];
+  for (let i = 5; i > 0; i--) { const j = rSlots.int(i + 1); const t = order[i]; order[i] = order[j]; order[j] = t; }
+  for (let s = 0; s < 6; s++) {
+    const st = A.starts[order[s]], who = roster[s];
+    const diff = opts.diffs ? opts.diffs[s] : (opts.diff || 'normal');
+    const cr = {
+      slot: s, name: who.name, look: who.look, pers: who.pers, diff, prof: who.pers ? C.bots.profiles[who.pers][diff] : null,
+      ctrl: opts.scripted ? 'script' : (who.pers ? 'bot' : 'human'),
+      x: st.x, y: st.y, px: st.x, py: st.y, vx: 0, vy: 0, hx: st.x < 0 ? 256 : -256, hy: 0, fx: st.x < 0 ? 256 : -256, fy: 0,
+      body: C.sizes.start, r: radiusOf(C.sizes.start), tier: 0, size: C.sizes.start, near: 0,
+      bubbleT: 0, shield: 0, puShield: 0, puRush: 0, pu: 0, dashT: 0, dashing: false, inKelp: -1,
+      school: [], gulps: 0, gulped: 0, food: 0, fryEaten: 0, bestSize: C.sizes.start, maxSchool: 0, startLeft: st.x < 0,
+      in: { dx: 0, dy: 0, dash: false, use: false },
+      trail: new Int32Array(128), trailI: 0, bx: 0, by: 0, lastGulper: -1,
+      ai: { t: s * 3, mode: 0, tx: 0, ty: 0, dash: false, fry: -1, prey: -1, chaseT: 0, ignore: -1, ignoreT: 0, sx: st.x, sy: st.y, stuck: 0, wander: 0, puHold: 0 }
+    };
+    for (let i = 0; i < 64; i++) { cr.trail[2 * i] = cr.x; cr.trail[2 * i + 1] = cr.y; }
+    sim.creatures.push(cr);
+  }
+  const CR = sim.creatures;
+
+  // ---- food grid ----
+  const CELL = 8 * FP, GW = 16, GOFF = 64 * FP;
+  const grid = []; for (let i = 0; i < GW * GW; i++) grid.push([]);
+  const cellOf = (x, y) => (((y + GOFF) / CELL) | 0) * GW + (((x + GOFF) / CELL) | 0);
+  function foodSpot() {                                   // a free spot on the left half, from the food stream
+    for (let tries = 0; tries < 60; tries++) {
+      const x = -(U(1.5) + rFood.int(U(56))), y = rFood.int(U(114)) - U(57);
+      if (x * x + y * y > U(57) * U(57)) continue;
+      let ok = true;
+      for (const k of A.rocks) { const dx = x - k.x, dy = y - k.y, m = k.r + FP; if (dx * dx + dy * dy < m * m) { ok = false; break; } }
+      if (ok) return [x, y];
+    }
+    return [-U(20), 0];
+  }
+  function inNook(x, y) { for (let i = 0; i < A.nooks.length; i++) { const n = A.nooks[i], dx = x - n.x, dy = y - n.y; if (dx * dx + dy * dy < n.R * n.R) return i; } return -1; }
+  function putFood(f, x, y) { f.x = x; f.y = y; f.alive = true; f.nook = inNook(x, y) >= 0; f.cell = cellOf(x, y); grid[f.cell].push(f.id); ev({ t: 'food', id: f.id }); }
+  function takeFood(f) { f.alive = false; const g = grid[f.cell], i = g.indexOf(f.id); g[i] = g[g.length - 1]; g.pop(); }
+  if (!opts.scripted) for (let p = 0; p < C.sizes.foodCount / 2; p++) {
+    const sp = foodSpot();
+    for (let k = 0; k < 2; k++) { const f = { id: sim.food.length, x: 0, y: 0, alive: false, nook: false, cell: 0, pair: p }; sim.food.push(f); putFood(f, k ? -sp[0] : sp[0], sp[1]); }
+  }
+  const pairT = new Int32Array(C.sizes.foodCount / 2);   // respawn countdown per mirrored pair
+
+  // ---- small fry: mirrored shoals of five ----
+  const OFFS = [[0, 0], [-U(2.2), U(1.4)], [U(1.8), U(2.2)], [U(2.4), -U(1.6)], [-U(1.6), -U(2.4)]];
+  function addFry(x, y, shoal, k) {
+    const f = { id: sim.fry.length, x, y, px: x, py: y, alive: true, owner: -1, court: -1, courtT: 0, safeT: 0, dartT: 0, dvx: 0, dvy: 0, respawnT: 0, shoal, k, hx: 256, hy: 0, free: shoal < 0 };
+    sim.fry.push(f); return f;
+  }
+  if (!opts.scripted) for (let s = 0; s < A.shoals.length; s++) for (let k = 0; k < S.shoalSize; k++) { const sh = A.shoals[s]; addFry(sh.x + OFFS[k][0] * sh.side, sh.y + OFFS[k][1], s, k); }
+  function tri(t, p, amp) { const ph = t % p, h = p >> 1, v = ph < h ? ph : p - ph; return ((v * 2 * amp / h) | 0) - amp; }
+  function fryHome(f, out) {
+    if (f.shoal < 0) { out[0] = f.x; out[1] = f.y; return; }
+    const sh = A.shoals[f.shoal];
+    out[0] = sh.x + (OFFS[f.k][0] + tri(sim.tick + f.shoal * 97, 1500, U(4))) * sh.side;
+    out[1] = sh.y + OFFS[f.k][1] + tri(sim.tick + 400 + (f.shoal >> 1) * 211, 1100, U(3));
+  }
+
+  // ---- helpers ----
+  function refresh(c) { c.tier = tierOf(c.body); c.r = radiusOf(c.body); }
+  function release(f, fromX, fromY) {
+    const o = CR[f.owner]; if (o) { const i = o.school.indexOf(f.id); if (i >= 0) o.school.splice(i, 1); }
+    f.owner = -1; f.safeT = S.safeTicks; f.court = -1; f.courtT = 0; f.dartT = 30;
+    let dx = f.x - fromX, dy = f.y - fromY; const d = isqrt(dx * dx + dy * dy);
+    if (d === 0) { dx = 256; dy = 0; } else { dx = (dx * 256 / d) | 0; dy = (dy * 256 / d) | 0; }
+    const sp = SPREAD[f.id % 5], rx = (dx * sp[0] - dy * sp[1]) >> 8, ry = (dx * sp[1] + dy * sp[0]) >> 8;   // fan out
+    f.dvx = (rx * 120) >> 8; f.dvy = (ry * 120) >> 8; ev({ t: 'free', x: f.x, y: f.y });
+  }
+  function join(f, c) { f.owner = c.slot; f.court = -1; f.courtT = 0; c.school.push(f.id); if (c.school.length > c.maxSchool) c.maxSchool = c.school.length; ev({ t: 'join', slot: c.slot, n: c.school.length, x: f.x, y: f.y }); }
+  function computeSize(c) {
+    let n = 0;
+    if (c.bubbleT === 0) { const lim = c.r + NEAR + FR; for (let i = 0; i < c.school.length; i++) { const f = sim.fry[c.school[i]], dx = f.x - c.x, dy = f.y - c.y; if (dx * dx + dy * dy <= lim * lim) n++; } }
+    c.near = n; c.size = c.body + S.bonus * n; if (c.size > c.bestSize) c.bestSize = c.size;
+  }
+  function hiddenFrom(t, o) { return t.inKelp >= 0 && t.tier <= 1 && o.inKelp !== t.inKelp; } // t hidden from observer o
+  function rankList() {
+    const l = CR.slice();
+    l.sort((p, q) => (q.size - p.size) || (q.gulps - p.gulps) || (p.gulped - q.gulped) || (q.food - p.food) || (p.slot - q.slot));
+    return l.map(c => c.slot);
+  }
+  function finish() { for (const c of CR) computeSize(c); sim.over = true; sim.ranking = rankList(); sim.winner = sim.ranking[0]; ev({ t: 'end' }); }
+  function pickSpawn(c) {
+    const threats = [], rivals = [];
+    for (const o of CR) { if (o === c || o.bubbleT > 0) continue; rivals.push(o); if (canGulp(o.size, c.body)) threats.push(o); }
+    const far = (list) => { let best = 0, bm = -1; for (let i = 0; i < A.spawns.length; i++) { const p = A.spawns[i]; let m = 4e9; for (const o of list) { const dx = p.x - o.x, dy = p.y - o.y, d = dx * dx + dy * dy; if (d < m) m = d; } if (m > bm) { bm = m; best = i; } } return [best, bm]; };
+    if (threats.length) { const r = far(threats); const lim = U(G.safeSpawn); if (r[1] > lim * lim) return A.spawns[r[0]]; }
+    return A.spawns[far(rivals.length ? rivals : [c])[0]];
+  }
+  function gulp(aa, bb) {
+    aa.body += (bb.body / G.gainDiv) | 0; aa.gulps++; refresh(aa);
+    bb.gulped++; bb.lastGulper = aa.slot; bb.bx = bb.x; bb.by = bb.y;
+    bb.body = Math.max(C.sizes.minReturn, (bb.body / G.keepDiv) | 0); refresh(bb);
+    while (bb.school.length) release(sim.fry[bb.school[0]], aa.x, aa.y);
+    bb.bubbleT = G.bubbleTicks; bb.vx = bb.vy = 0; bb.puShield = bb.puRush = 0; bb.pu = 0; bb.dashing = false; bb.size = bb.body; bb.near = 0;
+    ev({ t: 'gulp', a: aa.slot, b: bb.slot, x: bb.x, y: bb.y });
+  }
+  function usePower(c) {
+    const ty = C.powerups.types[c.pu - 1]; if (!ty) return; c.pu = 0;
+    if (ty.id === 'shield') c.puShield = ty.ticks;
+    else if (ty.id === 'rush') c.puRush = ty.ticks;
+    else { const lim = U(ty.range) + c.r; for (const f of sim.fry) { if (!f.alive || f.owner >= 0 || f.safeT > 0 || c.school.length >= S.max) continue; const dx = f.x - c.x, dy = f.y - c.y; if (dx * dx + dy * dy <= lim * lim) join(f, c); } }
+    ev({ t: 'use', slot: c.slot, id: ty.id, x: c.x, y: c.y });
+  }
+
+  // ---- bots ----
+  const tmp = [0, 0];
+  function setDir(c, tx, ty) { const dx = tx - c.x, dy = ty - c.y, d = isqrt(dx * dx + dy * dy); if (d < 64) { c.in.dx = 0; c.in.dy = 0; } else { c.in.dx = (dx * 256 / d) | 0; c.in.dy = (dy * 256 / d) | 0; } }
+  function nearestFood(c, sight) {
+    const cx = ((c.x + GOFF) / CELL) | 0, cy = ((c.y + GOFF) / CELL) | 0, rad = ((sight / CELL) | 0) + 1;
+    let best = -1, bd = sight * sight;
+    for (let gy = Math.max(0, cy - rad); gy <= Math.min(GW - 1, cy + rad); gy++) for (let gx = Math.max(0, cx - rad); gx <= Math.min(GW - 1, cx + rad); gx++) {
+      const g = grid[gy * GW + gx];
+      for (let i = 0; i < g.length; i++) { const f = sim.food[g[i]]; if (f.nook && c.tier > 1) continue; const dx = f.x - c.x, dy = f.y - c.y, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = f.id; } }
+    }
+    return best;
+  }
+  function think(c) {
+    const P = c.prof, ai = c.ai, sight = P.sight * FP, s2 = sight * sight, B = C.bots;
+    ai.dash = false; ai.fry = -1; ai.mode = 1;
+    if (ai.ignoreT > 0) { ai.ignoreT -= P.react; if (ai.ignoreT <= 0) ai.ignore = -1; }
+    // stuck against cover? wander off for a moment
+    { const dx = c.x - ai.sx, dy = c.y - ai.sy; if (dx * dx + dy * dy < U(0.6) * U(0.6) && ai.wasMoving) ai.stuck++; else ai.stuck = 0; ai.sx = c.x; ai.sy = c.y; }
+    if (ai.stuck * P.react >= 48) { ai.stuck = 0; ai.wander = 70; ai.tx = (rBots.int(U(80)) - U(40)); ai.ty = (rBots.int(U(80)) - U(40)); }
+    if (ai.wander > 0) { ai.wander -= P.react; ai.wasMoving = false; return; }
+    let threat = null, tg = 4e9, prey = null, pg = 4e9, leader = null;
+    const vulnerable = c.shield === 0 && c.puShield === 0;
+    for (const o of CR) {
+      if (o === c || o.bubbleT > 0 || hiddenFrom(o, c)) continue;
+      const dx = o.x - c.x, dy = o.y - c.y, d2 = dx * dx + dy * dy; if (d2 > s2) continue;
+      const d = isqrt(d2);
+      if (vulnerable && o.shield === 0 && canGulp(o.size, c.size)) { const g = d - o.r; if (g < tg) { tg = g; threat = o; } }
+      else if (c.shield === 0 && o.shield === 0 && o.puShield === 0 && canGulp(c.size, o.size) && o.slot !== ai.ignore) { const g = d - c.r; if (g < pg) { pg = g; prey = o; } }
+      if (o.size < c.size && o.near > 0 && o.puShield === 0 && (!leader || o.near > leader.near)) leader = o;
+    }
+    // power-up use
+    if (c.pu) {
+      ai.puHold += P.react; const id = C.powerups.types[c.pu - 1].id;
+      if (id === 'shield' ? (threat && tg < U(8)) : id === 'rush' ? ((threat && tg < U(10)) || (prey && pg < U(10) && P.dashChase)) : false) c.in.use = true;
+      if (id === 'call') { let n = 0; const lim = U(15) + c.r; for (const f of sim.fry) if (f.alive && f.owner < 0 && f.safeT === 0) { const dx = f.x - c.x, dy = f.y - c.y; if (dx * dx + dy * dy <= lim * lim) n++; } if (c.school.length < S.max && (n >= 3 || (n >= 1 && ai.puHold > 600))) c.in.use = true; }
+      if (ai.puHold > 1500) c.in.use = true;
+    } else ai.puHold = 0;
+    // 1. flee whoever can gulp it
+    if (threat && tg < U(B.fleeGap + (c.pers === 'shepherd' ? B.shepherdCare : 0)) + c.r) {
+      let ax = c.x - threat.x, ay = c.y - threat.y; const d = isqrt(ax * ax + ay * ay) || 1; ax = (ax * 256 / d) | 0; ay = (ay * 256 / d) | 0;
+      const cd = isqrt(c.x * c.x + c.y * c.y);
+      if (cd > A.R - c.r - U(9)) {                      // near the wall: slide along it, away from the threat
+        const nx = (c.x * 256 / cd) | 0, ny = (c.y * 256 / cd) | 0; let tx = -ny, ty = nx;
+        if (tx * ax + ty * ay < 0) { tx = -tx; ty = -ty; }
+        ax = tx * 3 - nx * 2; ay = ty * 3 - ny * 2;
+      }
+      // small ones duck into cover when it is close (tricksters look for it from further away)
+      if (c.tier <= 1 && threat.tier > 1) {
+        const reach = c.pers === 'trickster' ? U(26) : U(12); let bn = null, bd = reach * reach;
+        for (const n of A.nooks) { const dx = n.x - c.x, dy = n.y - c.y, d2 = dx * dx + dy * dy; const tx = n.x - threat.x, ty = n.y - threat.y; if (d2 < bd && d2 < tx * tx + ty * ty) { bd = d2; bn = n; } }
+        if (bn) { ai.tx = bn.x; ai.ty = bn.y; ai.mode = bd < U(3) * U(3) ? 0 : 1; ai.dash = P.dashEscape && tg < U(6) && c.body > 70; ai.wasMoving = false; return; }
+      }
+      ai.tx = c.x + ax * 20; ai.ty = c.y + ay * 20; ai.dash = P.dashEscape && tg < U(7) && c.body > 70; ai.wasMoving = true; return;
+    }
+    ai.wasMoving = true;
+    const pers = c.pers;
+    // trickster: hide in cover while someone dangerous is in sight
+    if (pers === 'trickster' && threat && c.tier <= 1 && tg < U(20)) {
+      let bn = null, bd = U(30) * U(30);
+      for (const n of A.nooks) { const dx = n.x - c.x, dy = n.y - c.y, d2 = dx * dx + dy * dy; if (d2 < bd) { bd = d2; bn = n; } }
+      for (const n of A.kelp) { const dx = n.x - c.x, dy = n.y - c.y, d2 = dx * dx + dy * dy; if (d2 < bd) { bd = d2; bn = n; } }
+      if (bn) { ai.tx = bn.x; ai.ty = bn.y; if (bd < U(3) * U(3)) { ai.mode = 0; ai.wasMoving = false; } return; }
+    }
+    // gulp what can be gulped: hunters chase anything in sight, the others only what is close
+    if (prey && (pers === 'hunter' ? true : pg < (pers === 'trickster' ? U(12) : U(B.shepherdReach)))) {
+      if (ai.prey === prey.slot) { ai.chaseT += P.react; if (ai.chaseT > B.chaseGiveUp) { ai.ignore = prey.slot; ai.ignoreT = 360; ai.prey = -1; ai.chaseT = 0; prey = null; } } else { ai.prey = prey.slot; ai.chaseT = 0; }
+      if (prey) { ai.tx = prey.x + prey.vx * 6; ai.ty = prey.y + prey.vy * 6; ai.dash = P.dashChase && pers !== 'shepherd' && pg < U(5) && c.body > 90; return; }
+    } else { ai.prey = -1; ai.chaseT = 0; }
+    // trickster: scatter the school of a smaller leader
+    if (pers === 'trickster' && leader) {
+      let bf = null, bd = 4e9; for (const id of leader.school) { const f = sim.fry[id], dx = f.x - c.x, dy = f.y - c.y, d2 = dx * dx + dy * dy; if (d2 < bd) { bd = d2; bf = f; } }
+      if (bf) { ai.tx = bf.x; ai.ty = bf.y; ai.dash = P.dashChase && bd < U(9) * U(9) && c.body > 90; return; }
+    }
+    // power-up nearby
+    if (!c.pu) for (const p of sim.pups) { const dx = p.x - c.x, dy = p.y - c.y; if (dx * dx + dy * dy < s2 / 4) { ai.tx = p.x; ai.ty = p.y; return; } }
+    // small fry: hunters eat them, shepherds spare them, tricksters do a bit of both
+    let bf = null, bd = s2;
+    const wantFry = pers === 'hunter' ? B.hunterFryTaste > 0 : c.school.length < S.max;
+    if (wantFry) for (const f of sim.fry) { if (!f.alive || f.owner >= 0 || f.safeT > 0 || f.id === ai.skipFry) continue; if (c.tier > 1 && inNook(f.x, f.y) >= 0) continue; const dx = f.x - c.x, dy = f.y - c.y, d2 = dx * dx + dy * dy; if (d2 < bd) { bd = d2; bf = f; } }
+    if (bf) {
+      if (pers === 'hunter' || (pers === 'trickster' && c.school.length >= 4)) { ai.tx = bf.x; ai.ty = bf.y; return; }
+      if (ai.lastFry === bf.id) { ai.fryT += P.react; if (ai.fryT > 260) { ai.skipFry = bf.id; ai.lastFry = -1; } } else { ai.lastFry = bf.id; ai.fryT = 0; }
+      ai.fry = bf.id; ai.mode = 2; ai.wasMoving = false; return;
+    }
+    // graze
+    const fd = nearestFood(c, sight);
+    if (fd >= 0) { ai.tx = sim.food[fd].x; ai.ty = sim.food[fd].y; return; }
+    ai.tx = rBots.int(U(60)) - U(30); ai.ty = rBots.int(U(60)) - U(30);
+  }
+  function drive(c) {
+    const ai = c.ai;
+    if (--ai.t <= 0) { ai.t = c.prof.react; c.in.use = false; think(c); }
+    c.in.dash = ai.dash;
+    if (ai.mode === 0) { c.in.dx = 0; c.in.dy = 0; }
+    else if (ai.mode === 2) {                             // sparing a small fry: come close, then hold still
+      const f = sim.fry[ai.fry];
+      if (!f || !f.alive || f.owner >= 0) { c.in.dx = 0; c.in.dy = 0; ai.t = Math.min(ai.t, 2); return; }
+      const dx = f.x - c.x, dy = f.y - c.y, d = isqrt(dx * dx + dy * dy), gap = d - c.r - FR, hold = U(C.bots.shepherdHold);
+      if (gap > hold) setDir(c, f.x, f.y);
+      else if (gap < U(1.2)) { setDir(c, c.x - dx, c.y - dy); }
+      else { c.in.dx = 0; c.in.dy = 0; }
+    } else setDir(c, ai.tx, ai.ty);
+  }
+
+  // ---- one tick ----
+  const ord = [];
+  sim.step = function () {
+    if (sim.over) return;
+    const T = C.tiers, D = C.dash;
+    // hazards: sea cows walk their loop
+    if (A.cows) {
+      const cw = A.cows, c0 = cw.list[0], p = cw.path;
+      c0.px = c0.x; c0.py = c0.y;
+      let left = cw.speed;
+      while (left > 0) { const q = p[(c0.seg + 1) % p.length], dx = q.x - c0.x, dy = q.y - c0.y, d = isqrt(dx * dx + dy * dy); if (d <= left) { c0.x = q.x; c0.y = q.y; c0.seg = (c0.seg + 1) % p.length; left -= d; if (d === 0) break; } else { c0.x += (dx * left / d) | 0; c0.y += (dy * left / d) | 0; left = 0; } }
+      const c1 = cw.list[1]; c1.px = c1.x; c1.py = c1.y; c1.x = -c0.x; c1.y = c0.y; c1.seg = c0.seg;
+    }
+    // creatures
+    for (let s = 0; s < 6; s++) {
+      const c = CR[s]; c.px = c.x; c.py = c.y;
+      if (c.bubbleT > 0) {
+        if (--c.bubbleT === 0) {
+          const sp = pickSpawn(c); c.x = c.px = sp.x; c.y = c.py = sp.y; c.vx = c.vy = 0; c.shield = G.shieldTicks; c.ai.t = 1; c.ai.wander = 0;
+          for (let i = 0; i < 64; i++) { c.trail[2 * i] = c.x; c.trail[2 * i + 1] = c.y; }
+          computeSize(c); ev({ t: 'return', slot: s, x: c.x, y: c.y });
+        }
+        continue;
+      }
+      if (c.ctrl === 'bot') drive(c);
+      const inp = c.in;
+      if (inp.use && c.pu) { usePower(c); inp.use = false; }
+      if (A.kelp.length) { c.inKelp = -1; for (let i = 0; i < A.kelp.length; i++) { const k = A.kelp[i], dx = c.x - k.x, dy = c.y - k.y; if (dx * dx + dy * dy < k.r * k.r) { c.inKelp = i; break; } } }
+      let sp = T.speed[c.tier];
+      if (c.inKelp >= 0 && c.tier >= 2) sp = (sp * A.def.hazard.slowNum / A.def.hazard.slowDen) | 0;
+      const moving = inp.dx !== 0 || inp.dy !== 0;
+      const was = c.dashing;
+      c.dashing = inp.dash && moving && (c.puRush > 0 || c.body > D.minBody);
+      if (c.dashing) {
+        sp = (sp * D.num / D.den) | 0;
+        if (c.puRush === 0 && ++c.dashT >= D.costEvery) { c.dashT = 0; c.body--; refresh(c); }
+        if (!was) ev({ t: 'dash', slot: s, x: c.x, y: c.y });
+      }
+      const tvx = (inp.dx * sp / 256) | 0, tvy = (inp.dy * sp / 256) | 0;
+      let ax = tvx - c.vx, ay = tvy - c.vy, sx = (ax * T.accel / 16) | 0, sy = (ay * T.accel / 16) | 0;
+      if (sx === 0 && ax !== 0) sx = ax > 0 ? 1 : -1; if (sy === 0 && ay !== 0) sy = ay > 0 ? 1 : -1;
+      c.vx += sx; c.vy += sy;
+      if (moving) { c.hx = inp.dx; c.hy = inp.dy; }
+      c.x += c.vx; c.y += c.vy;
+      if (A.current && c.x > -A.current.hw && c.x < A.current.hw && c.y > A.current.y0 && c.y < A.current.y1) c.y += A.current.push;
+      // cover: gaps only the two smallest tiers fit through
+      const nk = c.tier > 1 ? inNook(c.x, c.y) : -1;
+      const er = (c.tier <= 1 || nk >= 0) ? Math.min(c.r, SMALL_CAP) : Math.max(c.r, BIG_MIN);
+      for (let i = 0; i < A.rocks.length; i++) {
+        const k = A.rocks[i], dx = c.x - k.x, dy = c.y - k.y, m = er + k.r;
+        if (dx > m || dx < -m || dy > m || dy < -m) continue;
+        const d2 = dx * dx + dy * dy; if (d2 >= m * m) continue;
+        const d = isqrt(d2); if (d === 0) { c.x = k.x + m; continue; }
+        c.x = k.x + ((dx * m / d) | 0); c.y = k.y + ((dy * m / d) | 0);
+      }
+      for (let i = 0; i < sim.cows.length; i++) {
+        const k = sim.cows[i], dx = c.x - k.x, dy = c.y - k.y, m = c.r + A.cows.r, d2 = dx * dx + dy * dy;
+        if (d2 >= m * m) continue; const d = isqrt(d2); if (d === 0) { c.x = k.x + m; continue; }
+        c.x = k.x + ((dx * m / d) | 0); c.y = k.y + ((dy * m / d) | 0);
+      }
+      { const lim = A.R - c.r, d2 = c.x * c.x + c.y * c.y; if (d2 > lim * lim) { const d = isqrt(d2); c.x = (c.x * lim / d) | 0; c.y = (c.y * lim / d) | 0; } }
+      if (c.shield > 0) c.shield--; if (c.puShield > 0) c.puShield--; if (c.puRush > 0) c.puRush--;
+    }
+    // bumps: pairs that cannot gulp each other push apart
+    for (let i = 0; i < 6; i++) for (let j = i + 1; j < 6; j++) {
+      const p = CR[i], q = CR[j]; if (p.bubbleT > 0 || q.bubbleT > 0) continue;
+      const dx = q.x - p.x, dy = q.y - p.y, m = p.r + q.r, d2 = dx * dx + dy * dy; if (d2 >= m * m) continue;
+      const pq = p.shield === 0 && q.shield === 0 && q.puShield === 0 && canGulp(p.size, q.size), qp = q.shield === 0 && p.shield === 0 && p.puShield === 0 && canGulp(q.size, p.size);
+      if (pq || qp) continue;
+      const d = isqrt(d2), ov = m - d; let nx = 256, ny = 0; if (d > 0) { nx = (dx * 256 / d) | 0; ny = (dy * 256 / d) | 0; }
+      const h = (ov >> 1) + 1;
+      p.x -= (nx * h) >> 8; p.y -= (ny * h) >> 8; q.x += (nx * h) >> 8; q.y += (ny * h) >> 8;
+      if (ov > 24) ev({ t: 'bump', a: i, b: j, x: p.x + (dx >> 1), y: p.y + (dy >> 1) });
+    }
+    // food
+    for (let s = 0; s < 6; s++) {
+      const c = CR[s]; if (c.bubbleT > 0) continue;
+      const m = c.r + FOODR, x0 = Math.max(0, ((c.x - m + GOFF) / CELL) | 0), x1 = Math.min(GW - 1, ((c.x + m + GOFF) / CELL) | 0), y0 = Math.max(0, ((c.y - m + GOFF) / CELL) | 0), y1 = Math.min(GW - 1, ((c.y + m + GOFF) / CELL) | 0);
+      for (let gy = y0; gy <= y1; gy++) for (let gx = x0; gx <= x1; gx++) {
+        const g = grid[gy * GW + gx];
+        for (let i = g.length - 1; i >= 0; i--) {
+          const f = sim.food[g[i]], dx = f.x - c.x, dy = f.y - c.y;
+          if (dx * dx + dy * dy <= m * m) { takeFood(f); c.body += C.sizes.food; c.food++; if (pairT[f.pair] === 0) pairT[f.pair] = C.sizes.foodRespawn; ev({ t: 'eat', slot: s, x: f.x, y: f.y, id: f.id }); }
+        }
+      }
+      refresh(c);
+      c.trailI = (c.trailI + 1) & 63; c.trail[2 * c.trailI] = c.x; c.trail[2 * c.trailI + 1] = c.y;
+    }
+    for (let p = 0; p < pairT.length; p++) if (pairT[p] > 0 && --pairT[p] === 0) { const sp = foodSpot(); const f0 = sim.food[2 * p], f1 = sim.food[2 * p + 1]; if (!f0.alive) putFood(f0, sp[0], sp[1]); if (!f1.alive) putFood(f1, -sp[0], sp[1]); }
+    // school members follow their owner's wake
+    for (let s = 0; s < 6; s++) {
+      const o = CR[s]; if (o.bubbleT > 0) continue;
+      const fsp = T.speed[o.tier];
+      // the school swims in a three-wide block behind its owner (direction of travel taken from the wake)
+      if (o.school.length) { const tj = (o.trailI - 12) & 63; let wx = o.x - o.trail[2 * tj], wy = o.y - o.trail[2 * tj + 1]; const wd = isqrt(wx * wx + wy * wy); if (wd >= 96) { o.fx = (wx * 256 / wd) | 0; o.fy = (wy * 256 / wd) | 0; } }
+      for (let k = 0; k < o.school.length; k++) {
+        const f = sim.fry[o.school[k]]; f.px = f.x; f.py = f.y;
+        const back = o.r + ROW0 + ((k / 3) | 0) * ROW, col = (k % 3) - 1;
+        const tx = o.x - ((o.fx * back) >> 8) - ((o.fy * col * LAT) >> 8), ty = o.y - ((o.fy * back) >> 8) + ((o.fx * col * LAT) >> 8);
+        const dx = tx - f.x, dy = ty - f.y, d = isqrt(dx * dx + dy * dy);
+        if (d <= fsp) { f.x = tx; f.y = ty; f.hx = o.fx; f.hy = o.fy; } else { f.x += (dx * fsp / d) | 0; f.y += (dy * fsp / d) | 0; f.hx = (dx * 256 / d) | 0; f.hy = (dy * 256 / d) | 0; }
+      }
+      // a rival with a bigger Size scatters them
+      if (o.school.length && o.puShield === 0) for (let r = 0; r < 6; r++) {
+        const R = CR[r]; if (r === s || R.bubbleT > 0 || R.size <= o.size) continue;
+        const reach = R.r + FR + (R.dashing ? DSCAT : 0); let hit = 0;
+        const bx = R.x - o.x, by = R.y - o.y, far = reach + o.r + NEAR + U(12); if (bx * bx + by * by > far * far) continue;
+        for (let k = o.school.length - 1; k >= 0; k--) { const f = sim.fry[o.school[k]], dx = f.x - R.x, dy = f.y - R.y; if (dx * dx + dy * dy <= reach * reach) { release(f, R.x, R.y); hit++; } }
+        if (hit) ev({ t: 'scatter', owner: s, by: r, n: hit, x: R.x, y: R.y });
+      }
+    }
+    // wild small fry
+    for (let i = 0; i < sim.fry.length; i++) {
+      const f = sim.fry[i];
+      if (!f.alive) { if (--f.respawnT <= 0 && f.shoal >= 0) { f.alive = true; fryHome(f, tmp); f.x = f.px = tmp[0]; f.y = f.py = tmp[1]; f.safeT = 60; f.court = -1; f.courtT = 0; } continue; }
+      if (f.owner >= 0) continue;
+      f.px = f.x; f.py = f.y;
+      if (f.dartT > 0) { f.x += (f.dvx * f.dartT / 30) | 0; f.y += (f.dvy * f.dartT / 30) | 0; f.dartT--; f.hx = f.dvx; f.hy = f.dvy; }
+      else if (f.shoal >= 0) { fryHome(f, tmp); const dx = tmp[0] - f.x, dy = tmp[1] - f.y, d = isqrt(dx * dx + dy * dy); if (d > 48) { f.x += (dx * S.wildSpeed / d) | 0; f.y += (dy * S.wildSpeed / d) | 0; f.hx = (dx * 256 / d) | 0; f.hy = (dy * 256 / d) | 0; } }
+      if (A.current && f.x > -A.current.hw && f.x < A.current.hw && f.y > A.current.y0 && f.y < A.current.y1) f.y += A.current.push >> 1;
+      { const lim = A.R - FP, d2 = f.x * f.x + f.y * f.y; if (d2 > lim * lim) { const d = isqrt(d2); f.x = (f.x * lim / d) | 0; f.y = (f.y * lim / d) | 0; } }
+      if (f.safeT > 0) { f.safeT--; continue; }
+      let best = -1, bg = 4e9, eater = -1;
+      for (let s = 0; s < 6; s++) {
+        const c = CR[s]; if (c.bubbleT > 0) continue;
+        const dx = f.x - c.x, dy = f.y - c.y, m = c.r + FR + SPARE; if (dx > m || dx < -m || dy > m || dy < -m) continue;
+        const d2 = dx * dx + dy * dy; if (d2 > m * m) continue;
+        const t = c.r + FR; if (d2 <= t * t) { if (eater < 0) eater = s; continue; }
+        const g = isqrt(d2) - c.r; if (g < bg) { bg = g; best = s; }
+      }
+      if (eater >= 0) { const c = CR[eater]; c.body += S.eatGain; c.fryEaten++; refresh(c); f.alive = false; f.respawnT = S.respawn; f.court = -1; f.courtT = 0; ev({ t: 'fry', slot: eater, x: f.x, y: f.y }); continue; }
+      if (best >= 0) { if (f.court === best) f.courtT++; else { f.court = best; f.courtT = 1; } if (f.courtT >= S.spareTicks && CR[best].school.length < S.max) join(f, CR[best]); }
+      else { f.court = -1; f.courtT = 0; }
+    }
+    // Sizes, then gulps from the largest Size down (equal: lower slot first)
+    ord.length = 0;
+    for (let s = 0; s < 6; s++) { const c = CR[s]; computeSize(c); if (c.bubbleT === 0) { let i = ord.length; ord.push(c); while (i > 0 && ord[i - 1].size < c.size) { ord[i] = ord[i - 1]; i--; } ord[i] = c; } }
+    let any = false;
+    for (let i = 0; i < ord.length; i++) {
+      const p = ord[i]; if (p.bubbleT > 0 || p.shield > 0) continue;
+      for (let j = 0; j < ord.length; j++) {
+        const q = ord[j]; if (q === p || q.bubbleT > 0 || q.shield > 0 || q.puShield > 0) continue;
+        if (!canGulp(p.size, q.size)) continue;
+        const dx = q.x - p.x, dy = q.y - p.y; if (dx * dx + dy * dy <= p.r * p.r) { gulp(p, q); any = true; }
+      }
+    }
+    if (any) for (let s = 0; s < 6; s++) computeSize(CR[s]);
+    // power-ups
+    if (!sim.scripted && --sim.powTimer <= 0) {
+      sim.powTimer = C.powerups.spawnEvery;
+      if (sim.pups.length < C.powerups.maxOnField) { const free = A.powerSpots.filter(p => !sim.pups.some(q => q.x === p.x && q.y === p.y)); const sp = free[rPow.int(free.length)]; sim.pups.push({ x: sp.x, y: sp.y, type: 1 + rPow.int(3), born: sim.tick }); ev({ t: 'pup', x: sp.x, y: sp.y }); }
+    }
+    for (let i = sim.pups.length - 1; i >= 0; i--) {
+      const p = sim.pups[i];
+      for (let s = 0; s < 6; s++) { const c = CR[s]; if (c.bubbleT > 0 || c.pu) continue; const dx = p.x - c.x, dy = p.y - c.y, m = c.r + U(C.powerups.radius); if (dx * dx + dy * dy <= m * m) { c.pu = p.type; sim.pups.splice(i, 1); ev({ t: 'pickup', slot: s, type: p.type, x: p.x, y: p.y }); break; } }
+    }
+    sim.tick++;
+    // endings
+    if (sim.mode === 'survival') { if (sim.human >= 0 && CR[sim.human].gulped >= C.modes.survival.bubbles) finish(); }
+    else if (sim.mode === 'feast') { let top = 0; for (let s = 0; s < 6; s++) if (CR[s].size > top) top = CR[s].size; if (top >= C.modes.feast.target || sim.tick >= sim.limit) finish(); }
+    else if (sim.tick >= sim.limit) finish();
+  };
+  sim.rank = rankList;
+  sim.hash = function () { let h = sim.tick | 0; for (const c of CR) { h = Math.imul(h ^ c.x, 0x01000193); h = Math.imul(h ^ c.y, 0x01000193); h = Math.imul(h ^ c.body, 0x01000193); h = Math.imul(h ^ c.size, 0x01000193); h = Math.imul(h ^ c.gulps, 0x01000193); } for (const f of sim.fry) { h = Math.imul(h ^ f.x, 0x01000193); h = Math.imul(h ^ f.owner, 0x01000193); } return h >>> 0; };
+  // scripting helpers (self test, tour, screenshots)
+  sim.place = function (slot, x, y, body) { const c = CR[slot]; c.x = c.px = U(x); c.y = c.py = U(y); c.vx = c.vy = 0; if (body) { c.body = body; refresh(c); } for (let i = 0; i < 64; i++) { c.trail[2 * i] = c.x; c.trail[2 * i + 1] = c.y; } computeSize(c); return c; };
+  sim.addFry = function (x, y, owner) { const f = addFry(U(x), U(y), -1, 0); if (owner >= 0) { f.owner = owner; CR[owner].school.push(f.id); computeSize(CR[owner]); } return f; };
+  sim.addPup = function (x, y, type) { sim.pups.push({ x: U(x), y: U(y), type, born: sim.tick }); };
+  sim.addFood = function (x, y) { const f = { id: sim.food.length, x: 0, y: 0, alive: false, nook: false, cell: 0, pair: 0 }; sim.food.push(f); putFood(f, U(x), U(y)); return f; };
+  sim.computeSize = computeSize; sim.release = release; sim.finish = finish;
+  return sim;
+}
+
+/* ---- cup scoring ---- */
+function cupStandings(results) {                         // results: array of rankings (arrays of slots)
+  const P = CONFIG.cup.points, rows = [];
+  for (let s = 0; s < 6; s++) rows.push({ slot: s, points: 0, wins: 0, gulps: 0 });
+  for (const r of results) { r.ranking.forEach((slot, i) => { rows[slot].points += P[i]; if (i === 0) rows[slot].wins++; }); r.gulps.forEach((g, s) => { rows[s].gulps += g; }); }
+  rows.sort((p, q) => (q.points - p.points) || (q.wins - p.wins) || (q.gulps - p.gulps) || (p.slot - q.slot));
+  return rows;
+}
+
+/* ---- save: versioned key, damaged saves are kept under a backup key ---- */
+const Save = {
+  fresh() {
+    const own = {}, eq = {}; for (const k in CONFIG.cosmetics) { own[k] = CONFIG.cosmetics[k].filter(i => i.price === 0).map(i => i.id); eq[k] = CONFIG.cosmetics[k][0].id; }
+    return { v: 1, coins: 0, owned: own, equip: eq, top: [], hints: {}, cups: 0, settings: { music: 70, sfx: 80, diff: 'normal', reduced: false, cb: false, quality: '', lefty: false } };
+  },
+  valid(d) { return !!d && typeof d === 'object' && d.v === 1 && typeof d.coins === 'number' && d.coins >= 0 && !!d.owned && !!d.equip && Array.isArray(d.top) && !!d.settings && typeof d.settings === 'object'; },
+  load(store) {
+    let raw = null; try { raw = store.getItem(CONFIG.game.saveKey); } catch (e) { return { data: Save.fresh(), recovered: false }; }
+    if (raw === null || raw === undefined) return { data: Save.fresh(), recovered: false };
+    let d = null; try { d = JSON.parse(raw); } catch (e) { d = null; }
+    if (!Save.valid(d)) { try { store.setItem(CONFIG.game.backupKey, raw); } catch (e) {} const f = Save.fresh(); Save.store(store, f); return { data: f, recovered: true }; }
+    const f = Save.fresh(); for (const k in f.settings) if (!(k in d.settings)) d.settings[k] = f.settings[k]; for (const k in f.owned) { if (!Array.isArray(d.owned[k])) d.owned[k] = f.owned[k]; if (!d.equip[k]) d.equip[k] = f.equip[k]; } if (!d.hints) d.hints = {};
+    return { data: d, recovered: false };
+  },
+  store(store, d) { try { store.setItem(CONFIG.game.saveKey, JSON.stringify(d)); return true; } catch (e) { return false; } },
+  addScore(d, size) { d.top.push({ size: size | 0 }); d.top.sort((p, q) => q.size - p.size); if (d.top.length > 10) d.top.length = 10; }
+};
+function memoryStore(init) { const m = Object.assign({}, init || {}); return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: k => { delete m[k]; } }; }
+
+/* =====================================================================
+   SELF TEST - headless simulation checks (?selftest=1). Runs the same
+   in any engine: only integers go into the table.
+   ===================================================================== */
+const SelfTest = (function () {
+  const scripted = (arena, mode) => { const s = createSim({ arena: arena || 0, mode: mode || 'classic', seed: 7, scripted: true }); for (let i = 0; i < 6; i++) s.place(i, -50 + i * 4, 52, 100); return s; };
+  function playMatch(arena, mode, seed, diffs) { const s = createSim({ arena, mode, seed, allBots: true, diffs: diffs || null, diff: 'normal' }); let guard = 0; while (!s.over && guard++ < 20000) s.step(); return s; }
+  const dist = (p, q) => isqrt((p.x - q.x) * (p.x - q.x) + (p.y - q.y) * (p.y - q.y));
+  const checks = [];
+  const add = (name, run) => checks.push({ name, run });
+
+  add('Same seed and inputs give the same match twice', () => {
+    const run = () => { const s = createSim({ arena: 0, mode: 'classic', seed: 2024 }); const me = s.creatures[0]; for (let t = 0; t < 2400; t++) { me.in.dx = tri8(t); me.in.dy = tri8(t + 90); me.in.dash = (t % 200) < 30; s.step(); } return s.hash(); };
+    const tri8 = (t) => { const p = t % 360; return p < 180 ? p * 2 - 180 : 540 - p * 2; };
+    const h1 = run(), h2 = run(); return { pass: h1 === h2, detail: 'state hash ' + h1 + ' / ' + h2 };
+  });
+  add('Size 115 gulps Size 100 and gains exactly half its body size', () => {
+    const s = scripted(); const a = s.place(0, 0, 0, 115), b = s.place(1, 1, 0, 100); s.step();
+    return { pass: b.bubbleT > 0 && a.body === 165 && a.gulps === 1, detail: 'gulper body ' + a.body + ', gulped in bubble: ' + (b.bubbleT > 0) };
+  });
+  add('Size 114 only bumps Size 100', () => {
+    const s = scripted(); const a = s.place(0, 0, 0, 114), b = s.place(1, 1, 0, 100); const d0 = dist(a, b); for (let i = 0; i < 5; i++) s.step();
+    return { pass: b.bubbleT === 0 && a.body === 114 && b.body === 100 && dist(a, b) > d0, detail: 'bodies ' + a.body + ' and ' + b.body + ', gap grew ' + d0 + ' -> ' + dist(a, b) };
+  });
+  add('A gulped creature returns after exactly 180 ticks, shielded, at half body size', () => {
+    const s = scripted(); const a = s.place(0, 0, 0, 400), b = s.place(1, 1, 0, 300); s.step();
+    let ticks = 0; while (b.bubbleT > 0 && ticks < 400) { s.step(); ticks++; }
+    const s2 = scripted(); const a2 = s2.place(0, 0, 0, 200), b2 = s2.place(1, 1, 0, 130); s2.step(); for (let i = 0; i < 180; i++) s2.step();
+    let safe = true; for (const o of s.creatures) if (o !== b && canGulp(o.size, b.size) && dist(o, b) < U(CONFIG.gulp.safeSpawn)) safe = false;
+    return { pass: ticks === 180 && b.shield === CONFIG.gulp.shieldTicks && b.body === 150 && b2.body === 100 && safe && a.body === 550, detail: 'back after ' + ticks + ' ticks, shield ' + b.shield + ', body 300 -> ' + b.body + ', 130 -> ' + b2.body + ', clear of gulpers: ' + safe };
+  });
+  add('The return point avoids rivals that could gulp, also when camped', () => {
+    const s = scripted(); const A = s.arena; const b = s.place(1, 0, 0, 100); const a = s.place(0, 0.5, 0, 500);
+    // park big rivals on every return point but the last one
+    for (let i = 2; i < 6; i++) s.place(i, A.spawns[i - 2].x / FP, A.spawns[i - 2].y / FP, 400);
+    s.step(); for (let i = 0; i < 180; i++) s.step();
+    let near = 4e9; for (const o of s.creatures) if (o !== b && canGulp(o.size, b.size)) near = Math.min(near, dist(o, b));
+    return { pass: b.bubbleT === 0 && near >= U(CONFIG.gulp.safeSpawn), detail: 'nearest gulper ' + ((near / FP) | 0) + ' units away' };
+  });
+  add('Three spared small fry add exactly 45 and stop counting beyond 10 units', () => {
+    const s = scripted(); const c = s.place(0, 0, 0, 100);
+    const fr = [s.addFry(5, 0, -1), s.addFry(-5, 0, -1), s.addFry(0, 5, -1)];
+    for (let i = 0; i < 59; i++) s.step(); const before = c.size; s.step(); const joined = c.size;
+    for (const f of fr) { f.x = c.x + c.r + U(13); f.y = c.y; } s.step(); const far = c.size;
+    for (let i = 0; i < 120; i++) s.step(); const back = c.size;
+    return { pass: before === 100 && joined === 145 && far === 100 && back === 145, detail: 'Size ' + before + ' -> ' + joined + ', left behind ' + far + ', caught up ' + back };
+  });
+  add('A bigger rival scatters the school and the Size drops by 15 each', () => {
+    const s = scripted(); const c = s.place(0, 0, 0, 100); const fr = [s.addFry(6, 0, 0), s.addFry(-6, 0, 0), s.addFry(0, 6, 0)];
+    s.step(); const sizes = [c.size]; const r = s.creatures[1];
+    const spots = [[8, 0], [-8, 0], [0, 8]];
+    for (let k = 0; k < 3; k++) { fr.forEach((f, i) => { if (f.owner === 0) { f.x = U(spots[i][0] * 0.75); f.y = U(spots[i][1] * 0.75); } }); s.place(1, spots[k][0], spots[k][1], 200); s.step(); sizes.push(c.size); }
+    const small = scripted(); const c2 = small.place(0, 0, 0, 100); small.addFry(6, 0, 0); small.step(); small.place(1, 8, 0, 110); small.creatures[0].school.forEach(id => { small.fry[id].x = U(6); small.fry[id].y = 0; }); small.step();
+    return { pass: sizes.join() === '145,130,115,100' && c.bubbleT === 0 && c2.size === 115, detail: 'Size ' + sizes.join(' -> ') + '; a smaller rival passes through: ' + c2.size };
+  });
+  add('60 ticks of dash cost exactly 5 body size', () => {
+    const s = scripted(); const c = s.place(0, 0, 0, 100); c.in.dx = 256; c.in.dash = true; for (let i = 0; i < 60; i++) s.step();
+    const low = scripted(); const d = low.place(0, 0, 0, 60); d.in.dx = 256; d.in.dash = true; for (let i = 0; i < 60; i++) low.step();
+    return { pass: c.body === 95 && d.body === 60 && !d.dashing, detail: 'body 100 -> ' + c.body + '; at 60 no dash: ' + d.body };
+  });
+  add('Dash is 1.8 times the speed and tiers are 8% apart', () => {
+    const T = CONFIG.tiers.speed; let ok = true; for (let i = 1; i < T.length; i++) { const want = (T[i - 1] * 92 + 50) / 100 | 0; if (T[i] !== want && T[i] !== want - 1 && T[i] !== want + 1) ok = false; }
+    const s = scripted(); const c = s.place(0, 0, 0, 100); c.in.dx = 256; for (let i = 0; i < 40; i++) s.step(); const v = c.vx; c.in.dash = true; for (let i = 0; i < 36; i++) s.step();
+    return { pass: ok && v === T[0] && c.vx === ((T[0] * 9 / 5) | 0), detail: 'speed ' + v + ', dashing ' + c.vx + ', tiers ' + T.join(' ') };
+  });
+  for (let ar = 0; ar < CONFIG.arenas.length; ar++) add('Arena "' + CONFIG.arenas[ar].name + '" is mirror-symmetric', () => {
+    const s = createSim({ arena: ar, mode: 'classic', seed: 11 + ar, allBots: true }); const A = s.arena; let n = 0, bad = 0;
+    const sym = (list, key) => { const set = {}; for (const p of list) set[key(p)] = 1; for (const p of list) { n++; if (!set[key({ x: -p.x, y: p.y, r: p.r })]) bad++; } };
+    const k = p => p.x + ',' + p.y + ',' + (p.r || 0);
+    sym(A.rocks, k); sym(A.nooks, k); sym(A.starts, k); sym(A.spawns, k); sym(A.shoals, k); sym(A.powerSpots, k); sym(A.kelp, k); sym(s.fry, k); sym(s.food, k); sym(s.creatures, k);
+    if (A.cows) { for (let t = 0; t < 900; t++) { s.step(); if (s.cows[0].x !== -s.cows[1].x || s.cows[0].y !== s.cows[1].y) bad++; } n += 900; }
+    if (A.current && A.current.hw <= 0) bad++;
+    return { pass: bad === 0, detail: n + ' props, slots, shoals and food pieces checked, ' + bad + ' off' };
+  });
+  for (let ar = 0; ar < CONFIG.arenas.length; ar++) add('30 Classic and Feast matches, six Normal bots, ' + CONFIG.arenas[ar].name, () => {
+    let left = 0, one = 0; const w = { hunter: 0, trickster: 0, shepherd: 0 }; let ticks = 0;
+    for (let i = 0; i < 30; i++) { const s = playMatch(ar, i % 2 ? 'feast' : 'classic', 1000 * (ar + 1) + i); const win = s.creatures[s.winner]; if (s.over && s.ranking.length === 6 && s.winner >= 0) one++; if (win.startLeft) left++; w[win.pers]++; ticks += s.tick; }
+    const mx = Math.max(w.hunter, w.trickster, w.shepherd);
+    return { pass: left >= 8 && left <= 22 && mx <= 20 && one === 30, detail: 'winner started left ' + left + '/30; hunter ' + w.hunter + ', trickster ' + w.trickster + ', shepherd ' + w.shepherd + '; one winner in ' + one + '/30; ' + ticks + ' ticks' };
+  });
+  add('30 Classic matches, three Hard against three Easy bots', () => {
+    let hard = 0, one = 0;
+    for (let i = 0; i < 30; i++) { const hs = i % 2 ? [0, 4, 5] : [1, 2, 3]; const diffs = [0, 1, 2, 3, 4, 5].map(s => hs.indexOf(s) >= 0 ? 'hard' : 'easy'); const s = playMatch(i % 3, 'classic', 7000 + i, diffs); if (s.over && s.winner >= 0) one++; if (s.creatures[s.winner].diff === 'hard') hard++; }
+    return { pass: hard >= 20 && one === 30, detail: 'Hard won ' + hard + '/30; one winner in ' + one + '/30' };
+  });
+  add('Ranking never ties: Size, gulps, fewest bubbles, plankton, slot', () => {
+    const s = scripted(); for (const c of s.creatures) { c.body = 200; c.gulps = 1; c.gulped = 1; c.food = 5; } s.creatures[4].gulps = 2; s.creatures[3].gulped = 0; s.creatures[5].food = 9; s.finish();
+    const cup = cupStandings([{ ranking: [0, 1, 2, 3, 4, 5], gulps: [0, 0, 0, 0, 0, 0] }, { ranking: [1, 0, 3, 2, 4, 5], gulps: [0, 1, 0, 0, 0, 0] }]);
+    return { pass: s.ranking.join('') === '435012' && s.winner === 4 && cup.map(r => r.slot).join('') === '102345' && cup[0].points === 17 && cup[1].points === 17, detail: 'order ' + s.ranking.join(' ') + '; cup tie 17:17 goes to slot ' + cup[0].slot + ' on gulps, 8:8 to slot ' + cup[2].slot };
+  });
+  add('Feast ends at once at Size 600, larger Size first', () => {
+    const s = scripted(0, 'feast'); s.place(2, 0, 0, 640); s.place(4, 20, 0, 610); s.step();
+    return { pass: s.over && s.winner === 2 && s.tick === 1 && s.ranking[1] === 4, detail: 'over after ' + s.tick + ' tick, winner slot ' + s.winner };
+  });
+  add('A scripted Survival run ends at the third bubble and saves its best Size', () => {
+    const s = createSim({ arena: 0, mode: 'survival', seed: 5, scripted: true }); s.human = 0; for (let i = 0; i < 6; i++) s.place(i, -50 + i * 4, 52, 100);
+    const me = s.place(0, 0, 0, 180); const big = s.place(1, 30, 0, 900); let ticks = 0;
+    s.addFry(4, 0, 0); s.addFry(-4, 0, 0);
+    while (!s.over && ticks++ < 5000) { if (me.bubbleT === 0 && me.shield === 0) { big.x = me.x + 100; big.y = me.y; } s.step(); }
+    const store = memoryStore(); const sv = Save.load(store).data; Save.addScore(sv, me.bestSize); Save.store(store, sv); const again = Save.load(store).data;
+    return { pass: s.over && me.gulped === 3 && me.bestSize === 210 && again.top.length === 1 && again.top[0].size === 210, detail: 'ended at bubble ' + me.gulped + ' after ' + s.tick + ' ticks; best Size ' + me.bestSize + ' saved: ' + (again.top[0] && again.top[0].size) };
+  });
+  add('A damaged save recovers', () => {
+    const init = {}; init[CONFIG.game.saveKey] = '{"v":1,"coins":12,,,oops'; const store = memoryStore(init); const r = Save.load(store);
+    const init2 = {}; init2[CONFIG.game.saveKey] = '{"v":1,"coins":"lots"}'; const st2 = memoryStore(init2); const r2 = Save.load(st2);
+    const kept = store.getItem(CONFIG.game.backupKey) === init[CONFIG.game.saveKey]; const freshOk = Save.valid(JSON.parse(store.getItem(CONFIG.game.saveKey)));
+    return { pass: r.recovered && r.data.coins === 0 && kept && freshOk && r2.recovered, detail: 'backup kept: ' + kept + ', fresh save valid: ' + freshOk };
+  });
+  return { checks };
+})();
+
+/* =====================================================================
+   RENDERER - a compact WebGL2 renderer written for this game
+   (instanced meshes, one shader, a sand shader; no library).
+   ===================================================================== */
+const GLR = (function () {
+  let gl = null, canvas = null, prog, gprog, vao, ibuf, gvao, U_ = {}, GU = {};
+  const meshes = {}, order = ['sphere', 'ball', 'cyl', 'cone', 'box', 'torus', 'fin', 'arch', 'disc'];
+  const batches = {};            // name -> [opaque, blended] each { a: Float32Array, n }
+  const stats = { drawCalls: 0, instances: 0 };
+  const cam = { eye: [0, 50, 30], tgt: [0, 0, 0], fov: 38 * Math.PI / 180, aspect: 1, vp: new Float32Array(16), right: [1, 0, 0], up: [0, 1, 0], fwd: [0, 0, -1] };
+
+  // ---------- mesh building ----------
+  function build() {
+    const V = []; const start = (n) => { meshes[n] = { first: V.length / 6, count: 0 }; return n; }; const end = (n) => { meshes[n].count = V.length / 6 - meshes[n].first; };
+    const tri = (a, b, c, na, nb, nc) => { V.push(a[0], a[1], a[2], na[0], na[1], na[2], b[0], b[1], b[2], nb[0], nb[1], nb[2], c[0], c[1], c[2], nc[0], nc[1], nc[2]); };
+    const triR = (a, b, c, na, nb, nc) => tri(a, c, b, na, nc, nb);
+    const flat = (a, b, c) => { const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2]; let n = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx]; const l = Math.hypot(n[0], n[1], n[2]) || 1; n = [n[0] / l, n[1] / l, n[2] / l]; tri(a, b, c, n, n, n); };
+    const sph = (name, seg, rings) => { start(name); const p = (i, j) => { const th = i / seg * Math.PI * 2, ph = j / rings * Math.PI; return [Math.sin(ph) * Math.cos(th), Math.cos(ph), Math.sin(ph) * Math.sin(th)]; }; for (let j = 0; j < rings; j++) for (let i = 0; i < seg; i++) { const a = p(i, j), b = p(i + 1, j), c = p(i + 1, j + 1), d = p(i, j + 1); if (j > 0) tri(a, b, c, a, b, c); if (j < rings - 1) tri(a, c, d, a, c, d); } end(name); };
+    sph('sphere', 18, 12); sph('ball', 8, 6);
+    start('cyl'); { const n = 12; for (let i = 0; i < n; i++) { const a0 = i / n * 6.28318, a1 = (i + 1) / n * 6.28318, c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1); triR([c0, 0, s0], [c1, 0, s1], [c1, 1, s1], [c0, 0, s0], [c1, 0, s1], [c1, 0, s1]); triR([c0, 0, s0], [c1, 1, s1], [c0, 1, s0], [c0, 0, s0], [c1, 0, s1], [c0, 0, s0]); triR([0, 1, 0], [c0, 1, s0], [c1, 1, s1], [0, 1, 0], [0, 1, 0], [0, 1, 0]); } } end('cyl');
+    start('cone'); { const n = 12; for (let i = 0; i < n; i++) { const a0 = i / n * 6.28318, a1 = (i + 1) / n * 6.28318, c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1); const n0 = [c0 * 0.8, 0.6, s0 * 0.8], n1 = [c1 * 0.8, 0.6, s1 * 0.8]; triR([c0, 0, s0], [c1, 0, s1], [0, 1, 0], n0, n1, [(n0[0] + n1[0]) / 2, 0.6, (n0[2] + n1[2]) / 2]); triR([0, 0, 0], [c1, 0, s1], [c0, 0, s0], [0, -1, 0], [0, -1, 0], [0, -1, 0]); } } end('cone');
+    start('box'); { const q = (a, b, c, d) => { flat(a, b, c); flat(a, c, d); }; const h = 0.5; q([-h, -h, h], [h, -h, h], [h, h, h], [-h, h, h]); q([h, -h, -h], [-h, -h, -h], [-h, h, -h], [h, h, -h]); q([h, -h, h], [h, -h, -h], [h, h, -h], [h, h, h]); q([-h, -h, -h], [-h, -h, h], [-h, h, h], [-h, h, -h]); q([-h, h, h], [h, h, h], [h, h, -h], [-h, h, -h]); q([-h, -h, -h], [h, -h, -h], [h, -h, h], [-h, -h, h]); } end('box');
+    const tor = (name, R, r, seg, sides, arc, upright) => { start(name); const p = (i, j) => { const u = i / seg * arc, v = j / sides * 6.28318; const cx = Math.cos(u) * R, cz = Math.sin(u) * R; const nx = Math.cos(u) * Math.cos(v), ny = Math.sin(v), nz = Math.sin(u) * Math.cos(v); const P = [cx + nx * r, ny * r, cz + nz * r], N = [nx, ny, nz]; return upright ? [[P[0], P[2], P[1]], [N[0], N[2], N[1]]] : [P, N]; }; for (let i = 0; i < seg; i++) for (let j = 0; j < sides; j++) { const a = p(i, j), b = p(i + 1, j), c = p(i + 1, j + 1), d = p(i, j + 1); tri(a[0], b[0], c[0], a[1], b[1], c[1]); tri(a[0], c[0], d[0], a[1], c[1], d[1]); } end(name); };
+    tor('torus', 1, 0.07, 28, 6, 6.28318, false); tor('arch', 1, 0.2, 12, 8, Math.PI, true);
+    start('fin'); { const pts = [[0, 0.22], [-0.55, 0.62], [-1, 0.72], [-0.82, 0.2], [-0.82, -0.2], [-1, -0.72], [-0.55, -0.62], [0, -0.22]]; const t = 0.07; for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; if (i > 0 && i < pts.length - 1) { tri([pts[0][0], pts[0][1], t], [a[0], a[1], t], [b[0], b[1], t], [0, 0, 1], [0, 0, 1], [0, 0, 1]); tri([pts[0][0], pts[0][1], -t], [b[0], b[1], -t], [a[0], a[1], -t], [0, 0, -1], [0, 0, -1], [0, 0, -1]); } flat([a[0], a[1], t], [a[0], a[1], -t], [b[0], b[1], -t]); flat([a[0], a[1], t], [b[0], b[1], -t], [b[0], b[1], t]); } } end('fin');
+    start('disc'); { const n = 20; for (let i = 0; i < n; i++) { const a0 = i / n * 6.28318, a1 = (i + 1) / n * 6.28318; tri([0, 0, 0], [Math.cos(a1), 0, Math.sin(a1)], [Math.cos(a0), 0, Math.sin(a0)], [0, 1, 0], [0, 1, 0], [0, 1, 0]); } } end('disc');
+    return new Float32Array(V);
+  }
+
+  const VS = `#version 300 es
+layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNor;
+layout(location=2) in vec4 iA; layout(location=3) in vec4 iB; layout(location=4) in vec4 iQ; layout(location=5) in vec4 iC;
+uniform mat4 uVP;
+out vec3 vN; out vec3 vW; out vec3 vL; out vec4 vC; out vec2 vF;
+vec3 rot(vec4 q, vec3 v){ return v + 2.0*cross(q.xyz, cross(q.xyz, v) + q.w*v); }
+void main(){ vec3 p = rot(iQ, aPos*iB.xyz) + iA.xyz; vN = rot(iQ, aNor/iB.xyz); vW = p; vL = aPos; vC = iC; vF = vec2(iA.w, iB.w); gl_Position = uVP*vec4(p,1.0); }`;
+  const CAUS = `float caus(vec2 p, float t){ p*=0.32; float v = sin(p.x*1.3+sin(p.y*0.9+t*0.7)*1.4) + sin(p.y*1.1+sin(p.x*1.2-t*0.6)*1.4) + sin((p.x+p.y)*0.7+t*0.5); float c = 1.0-clamp(abs(v)*0.75,0.0,1.0); return c*c*c; }`;
+  const FS = `#version 300 es
+precision highp float;
+in vec3 vN; in vec3 vW; in vec3 vL; in vec4 vC; in vec2 vF;
+uniform vec3 uCam; uniform vec3 uFog; uniform vec2 uFogR; uniform float uT; uniform float uBlend; uniform float uQ;
+out vec4 o;
+${CAUS}
+void main(){
+  float flag = vF.y; vec3 col = vC.rgb; float a = vC.a;
+  vec3 n = normalize(vN); if(!gl_FrontFacing) n = -n;
+  vec3 V = normalize(uCam - vW); vec3 L = normalize(vec3(0.38,0.82,0.42));
+  if(flag < 0.5 || flag > 4.5){
+    if(flag > 4.5) col = mix(col, mix(col, vec3(1.0,0.96,0.86), 0.62), smoothstep(-0.12,-0.5,vL.y));
+    float w = dot(n,L)*0.5+0.5; float band = smoothstep(0.15,0.95,w);
+    vec3 sh = mix(col*vec3(0.42,0.5,0.72), col*1.06, band);
+    float sp = pow(max(dot(reflect(-L,n),V),0.0), 26.0)*0.28;
+    float rim = pow(1.0-max(dot(n,V),0.0), 3.0)*0.2;
+    float ca = uQ > 0.5 ? caus(vW.xz, uT)*max(n.y,0.0)*0.1 : 0.0;
+    col = sh + sp + rim*vec3(0.55,0.9,1.0) + ca;
+    col = mix(col, (flag > 4.5 ? col : vC.rgb*1.2 + 0.08), vF.x);
+  } else if(flag < 1.5){
+  } else if(flag < 2.5){ a *= smoothstep(1.0, 0.2, length(vL.xz)); }
+  else { float f = 1.0-max(dot(n,V),0.0); a *= 0.12+0.88*f*f; col += pow(max(dot(reflect(-L,n),V),0.0), 30.0)*0.9; }
+  float d = distance(uCam, vW); col = mix(col, uFog, smoothstep(uFogR.x, uFogR.y, d)*0.85);
+  if(uBlend < 0.5){ if(a < 0.99){ float t = fract(52.9829189*fract(dot(gl_FragCoord.xy, vec2(0.06711056,0.00583715)))); if(t > a) discard; } o = vec4(col,1.0); }
+  else o = vec4(col, a);
+}`;
+  const GVS = `#version 300 es
+layout(location=0) in vec2 aP; uniform mat4 uVP; out vec2 vP;
+void main(){ vP = aP*400.0; gl_Position = uVP*vec4(vP.x, 0.0, vP.y, 1.0); }`;
+  const GFS = `#version 300 es
+precision highp float;
+in vec2 vP; uniform vec3 uCam; uniform vec3 uFog; uniform vec2 uFogR; uniform float uT; uniform float uQ; uniform float uR;
+uniform vec3 uSand; uniform vec3 uWater; uniform vec4 uCur; uniform vec3 uKelp[4]; uniform vec3 uNook[3];
+out vec4 o;
+${CAUS}
+float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
+void main(){
+  float r = length(vP);
+  float nz = vn(vP*0.18)*0.6 + vn(vP*0.9)*0.4;
+  float rip = sin(vP.y*1.6 + sin(vP.x*0.35)*2.0 + nz*3.0)*0.5+0.5;
+  vec3 col = uSand*(0.8 + 0.16*nz) - 0.06*rip*vec3(0.6,0.5,0.3);
+  col = mix(col, uSand*vec3(0.75,0.9,0.95), smoothstep(0.55,1.0,r/uR)*0.35);
+  for(int i=0;i<4;i++){ if(uKelp[i].z > 0.0){ float d = length(vP-uKelp[i].xy)/uKelp[i].z; col = mix(col, vec3(0.16,0.42,0.3), (1.0-smoothstep(0.82,1.05,d))*0.62); } }
+  for(int i=0;i<3;i++){ if(uNook[i].z > 0.0){ float d = length(vP-uNook[i].xy)/uNook[i].z; col = mix(col, col*vec3(0.8,0.92,1.0)+vec3(0.0,0.03,0.06), (1.0-smoothstep(0.8,1.1,d))*0.5); } }
+  if(uCur.w > 0.5){ float e = 1.0-smoothstep(uCur.x*0.7, uCur.x*1.15, abs(vP.x)); e *= smoothstep(uCur.y-4.0, uCur.y+2.0, vP.y)*(1.0-smoothstep(uCur.z-2.0, uCur.z+4.0, vP.y)); float st = sin(vP.y*1.3 - uT*5.0 + sin(vP.x*2.2)*1.5)*0.5+0.5; float st2 = step(0.72, vn(vec2(vP.x*1.4, vP.y*0.22 - uT*1.6))); col = mix(col, uWater*1.25 + vec3(0.1,0.16,0.16), e*(0.42 + 0.14*st)); col += e*st2*0.16; }
+  float ca = caus(vP, uT); col += ca*(uQ > 0.5 ? 0.13 : 0.08)*vec3(1.0,0.98,0.85);
+  float edge = smoothstep(uR-1.5, uR+7.0, r);
+  col = mix(col, uWater*0.5, edge*0.9);
+  float d = distance(uCam, vec3(vP.x,0.0,vP.y)); col = mix(col, uFog, smoothstep(uFogR.x, uFogR.y, d)*0.9);
+  o = vec4(col,1.0);
+}`;
+  function sh(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+  function mk(vs, fs) { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p; }
+  function init(cv) {
+    canvas = cv; gl = cv.getContext('webgl2', { antialias: true, alpha: false, powerPreference: 'high-performance' });
+    if (!gl) return false;
+    prog = mk(VS, FS); gprog = mk(GVS, GFS);
+    for (const u of ['uVP', 'uCam', 'uFog', 'uFogR', 'uT', 'uBlend', 'uQ']) U_[u] = gl.getUniformLocation(prog, u);
+    for (const u of ['uVP', 'uCam', 'uFog', 'uFogR', 'uT', 'uQ', 'uR', 'uSand', 'uWater', 'uCur', 'uKelp', 'uNook']) GU[u] = gl.getUniformLocation(gprog, u);
+    const data = build();
+    vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+    const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+    ibuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, ibuf); gl.bufferData(gl.ARRAY_BUFFER, 16 * 4 * 2048, gl.DYNAMIC_DRAW);
+    for (let i = 0; i < 4; i++) { gl.enableVertexAttribArray(2 + i); gl.vertexAttribPointer(2 + i, 4, gl.FLOAT, false, 64, i * 16); gl.vertexAttribDivisor(2 + i, 1); }
+    gvao = gl.createVertexArray(); gl.bindVertexArray(gvao); const gb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]), gl.STATIC_DRAW); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+    for (const n of order) batches[n] = [{ a: new Float32Array(16 * 256), n: 0 }, { a: new Float32Array(16 * 128), n: 0 }];
+    return true;
+  }
+  function begin() { for (const n of order) { batches[n][0].n = 0; batches[n][1].n = 0; } }
+  // mesh, pass (0 opaque, 1 blended), position, scale, quaternion, colour, alpha, emissive, flag
+  function put(mesh, pass, x, y, z, sx, sy, sz, q, c, a, em, flag) {
+    const b = batches[mesh][pass]; if ((b.n + 1) * 16 > b.a.length) { const na = new Float32Array(b.a.length * 2); na.set(b.a); b.a = na; }
+    const o = b.n * 16, A = b.a; b.n++;
+    A[o] = x; A[o + 1] = y; A[o + 2] = z; A[o + 3] = em || 0; A[o + 4] = sx || 0.001; A[o + 5] = sy || 0.001; A[o + 6] = sz || 0.001; A[o + 7] = flag || 0;
+    A[o + 8] = q[0]; A[o + 9] = q[1]; A[o + 10] = q[2]; A[o + 11] = q[3]; A[o + 12] = c[0]; A[o + 13] = c[1]; A[o + 14] = c[2]; A[o + 15] = a;
+  }
+  function setCamera(eye, tgt, aspect) {
+    cam.eye = eye; cam.tgt = tgt; cam.aspect = aspect;
+    let fx = tgt[0] - eye[0], fy = tgt[1] - eye[1], fz = tgt[2] - eye[2]; let l = Math.hypot(fx, fy, fz); fx /= l; fy /= l; fz /= l;
+    let rx = -fz, ry = 0, rz = fx; l = Math.hypot(rx, rz) || 1; rx /= l; rz /= l;          // right = fwd x up(0,1,0)
+    const ux = ry * fz - rz * fy, uy = rz * fx - rx * fz, uz = rx * fy - ry * fx;
+    cam.fwd = [fx, fy, fz]; cam.right = [rx, ry, rz]; cam.up = [ux, uy, uz];
+    const f = 1 / Math.tan(cam.fov / 2), n = 1, fa = 900, m = cam.vp;
+    const tx = -(rx * eye[0] + ry * eye[1] + rz * eye[2]), ty = -(ux * eye[0] + uy * eye[1] + uz * eye[2]), tz = (fx * eye[0] + fy * eye[1] + fz * eye[2]);
+    const a = f / aspect, c = (fa + n) / (n - fa), dd = 2 * fa * n / (n - fa);
+    // P * V, column-major; view rows: right, up, -fwd
+    m[0] = a * rx; m[1] = f * ux; m[2] = c * -fx; m[3] = fx;
+    m[4] = a * ry; m[5] = f * uy; m[6] = c * -fy; m[7] = fy;
+    m[8] = a * rz; m[9] = f * uz; m[10] = c * -fz; m[11] = fz;
+    m[12] = a * tx; m[13] = f * ty; m[14] = c * tz + dd; m[15] = -tz;
+  }
+  function project(x, y, z, out) { const m = cam.vp; const w = m[3] * x + m[7] * y + m[11] * z + m[15]; out[0] = ((m[0] * x + m[4] * y + m[8] * z + m[12]) / w * 0.5 + 0.5); out[1] = (1 - ((m[1] * x + m[5] * y + m[9] * z + m[13]) / w * 0.5 + 0.5)); out[2] = w; return out; }
+  function pick(nx, ny, out) {                         // screen 0..1 -> point on the sand
+    const t = Math.tan(cam.fov / 2), px = (nx * 2 - 1) * t * cam.aspect, py = (1 - ny * 2) * t;
+    const dx = cam.fwd[0] + cam.right[0] * px + cam.up[0] * py, dy = cam.fwd[1] + cam.right[1] * px + cam.up[1] * py, dz = cam.fwd[2] + cam.right[2] * px + cam.up[2] * py;
+    const k = dy < -0.001 ? -cam.eye[1] / dy : 500; out[0] = cam.eye[0] + dx * k; out[1] = cam.eye[2] + dz * k; return out;
+  }
+  function render(env) {
+    const w = canvas.width, hgt = canvas.height; gl.viewport(0, 0, w, hgt);
+    gl.clearColor(env.fog[0], env.fog[1], env.fog[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND); gl.depthMask(true);
+    stats.drawCalls = 0; stats.instances = 0;
+    gl.useProgram(gprog); gl.bindVertexArray(gvao);
+    gl.uniformMatrix4fv(GU.uVP, false, cam.vp); gl.uniform3fv(GU.uCam, cam.eye); gl.uniform3fv(GU.uFog, env.fog); gl.uniform2f(GU.uFogR, env.fogA, env.fogB); gl.uniform1f(GU.uT, env.t); gl.uniform1f(GU.uQ, env.q); gl.uniform1f(GU.uR, env.R);
+    gl.uniform3fv(GU.uSand, env.sand); gl.uniform3fv(GU.uWater, env.water); gl.uniform4fv(GU.uCur, env.cur); gl.uniform3fv(GU.uKelp, env.kelp); gl.uniform3fv(GU.uNook, env.nook);
+    gl.drawArrays(gl.TRIANGLES, 0, 6); stats.drawCalls++;
+    gl.useProgram(prog); gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER, ibuf);
+    gl.uniformMatrix4fv(U_.uVP, false, cam.vp); gl.uniform3fv(U_.uCam, cam.eye); gl.uniform3fv(U_.uFog, env.fog); gl.uniform2f(U_.uFogR, env.fogA, env.fogB); gl.uniform1f(U_.uT, env.t); gl.uniform1f(U_.uQ, env.q);
+    for (let pass = 0; pass < 2; pass++) {
+      gl.uniform1f(U_.uBlend, pass);
+      if (pass === 1) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); }
+      for (const n of order) { const b = batches[n][pass]; if (!b.n) continue; gl.bufferData(gl.ARRAY_BUFFER, b.a.subarray(0, b.n * 16), gl.DYNAMIC_DRAW); gl.drawArraysInstanced(gl.TRIANGLES, meshes[n].first, meshes[n].count, b.n); stats.drawCalls++; stats.instances += b.n; }
+    }
+    gl.depthMask(true); gl.disable(gl.BLEND); gl.bindVertexArray(null);
+  }
+  function resize(scale) { const w = Math.max(2, Math.floor(canvas.clientWidth * scale)), h = Math.max(2, Math.floor(canvas.clientHeight * scale)); if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; } }
+  return { init, begin, put, setCamera, project, pick, render, resize, stats, cam };
+})();
+
+/* =====================================================================
+   SCENE - turns the simulation into toy-like 3D (floats are fine here:
+   this part only draws and never feeds back into the simulation).
+   ===================================================================== */
+const Scene = (function () {
+  const Q0 = [0, 0, 0, 1], WHITE = [1, 1, 1], DARK = [0.08, 0.1, 0.2], SHADOW = [0.02, 0.12, 0.2];
+  const qy = (a, o) => { o[0] = 0; o[1] = Math.sin(a / 2); o[2] = 0; o[3] = Math.cos(a / 2); return o; };
+  const qx = (a, o) => { o[0] = Math.sin(a / 2); o[1] = 0; o[2] = 0; o[3] = Math.cos(a / 2); return o; };
+  const qz = (a, o) => { o[0] = 0; o[1] = 0; o[2] = Math.sin(a / 2); o[3] = Math.cos(a / 2); return o; };
+  const qm = (a, b, o) => { const x = a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1], y = a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0], z = a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3], w = a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]; o[0] = x; o[1] = y; o[2] = z; o[3] = w; return o; };
+  const base = { x: 0, y: 0, z: 0, s: 1, q: [0, 0, 0, 1], a: 1 };
+  const t1 = [0, 0, 0, 1], t2 = [0, 0, 0, 1], t3 = [0, 0, 0, 1], t4 = [0, 0, 0, 1];
+  function part(mesh, lx, ly, lz, sx, sy, sz, lq, col, em, flag, pass, alpha) {
+    const q = base.q, s = base.s; const vx = lx * s, vy = ly * s, vz = lz * s;
+    const cx = q[1] * vz - q[2] * vy + q[3] * vx, cy = q[2] * vx - q[0] * vz + q[3] * vy, cz = q[0] * vy - q[1] * vx + q[3] * vz;
+    const px = vx + 2 * (q[1] * cz - q[2] * cy), py = vy + 2 * (q[2] * cx - q[0] * cz), pz = vz + 2 * (q[0] * cy - q[1] * cx);
+    GLR.put(mesh, pass || 0, base.x + px, base.y + py, base.z + pz, sx * s, sy * s, sz * s, lq === Q0 ? q : qm(q, lq, t4), col, alpha === undefined ? base.a : alpha, em || 0, flag || 0);
+  }
+  const views = [], fx = { parts: [], shake: 0 };
+  let props = [], decorArena = -1, time = 0, quality = 1, cb = false, reduced = false, playerLook = null;
+  const hsh = (n) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+  const FOODCOL = [[0.4, 1.0, 0.9], [0.75, 1.0, 0.4], [1.0, 0.92, 0.4], [1.0, 0.6, 0.85], [0.6, 0.8, 1.0]];
+
+  function reset(sim) {
+    views.length = 0; fx.parts.length = 0;
+    for (const c of sim.creatures) views.push({ yaw: Math.atan2(-c.hy, c.hx), roll: 0, swim: 0, mouth: 0, squash: 0, blink: hsh(c.slot) * 3, ph: hsh(c.slot + 9) * 6, bub: 0, pop: 0, trailT: 0, hid: 0, sx: c.x / FP, sz: c.y / FP });
+    buildProps(sim.arena);
+  }
+  function addProp(mesh, x, y, z, sx, sy, sz, q, col, opt) { props.push(Object.assign({ mesh, x, y, z, sx, sy, sz, q: q ? q.slice() : Q0, col, em: 0, fadeR: 0, cx: x, cz: z, sway: 0 }, opt || {})); }
+  function buildProps(A) {
+    props = []; decorArena = A.index; const d = A.def, R = A.R / FP;
+    const coral = [[1.0, 0.45, 0.5], [1.0, 0.6, 0.3], [0.95, 0.4, 0.7], [1.0, 0.75, 0.35]];
+    // coral rings: pillars joined by arches
+    const rings = {};
+    A.rocks.forEach((k, i) => {
+      const x = k.x / FP, z = k.y / FP;
+      if (k.kind === 'pillar') {
+        (rings[k.ring] = rings[k.ring] || []).push(k);
+        const col = coral[(i + k.ring) % 4], n = A.nooks[k.ring], f = { fadeR: 13, cx: n.x / FP, cz: n.y / FP };
+        addProp('cyl', x, 0, z, 1.7, 2.6, 1.7, null, col, f); addProp('sphere', x, 2.7, z, 1.95, 1.3, 1.95, null, col, f);
+        addProp('ball', x + 0.9, 3.6, z - 0.3, 0.7, 0.7, 0.7, null, coral[(i + 1) % 4], f); addProp('ball', x - 0.7, 3.4, z + 0.6, 0.55, 0.55, 0.55, null, coral[(i + 2) % 4], f);
+      } else {
+        addProp('cyl', x, 0, z, 1.85, 2.3, 1.85, null, [0.6, 0.42, 0.26]); addProp('cyl', x, 2.3, z, 1.95, 0.22, 1.95, null, [0.74, 0.56, 0.36]);
+      }
+    });
+    for (const r in rings) { const l = rings[r], n = A.nooks[r]; for (let i = 0; i < l.length; i++) { const a = l[i], b = l[(i + 1) % l.length]; const mx = (a.x + b.x) / 2 / FP, mz = (a.y + b.y) / 2 / FP, dx = (b.x - a.x) / FP, dz = (b.y - a.y) / FP, len = Math.hypot(dx, dz) / 2; addProp('arch', mx, 1.6, mz, len, len * 0.78, len * 0.9, qy(Math.atan2(-dz, dx), t1), coral[(i * 3 + 1) % 4], { fadeR: 13, cx: n.x / FP, cz: n.y / FP, tall: 1 }); } }
+    // the sunken rowboat: planks between neighbouring posts, thwarts, an oar
+    const posts = A.rocks.filter(k => k.kind === 'post');
+    if (posts.length) {
+      for (let i = 0; i < posts.length; i++) for (let j = i + 1; j < posts.length; j++) { const a = posts[i], b = posts[j], dx = (b.x - a.x) / FP, dz = (b.y - a.y) / FP, len = Math.hypot(dx, dz); if (len < 4.6) { addProp('box', (a.x + b.x) / 2 / FP, 1.25, (a.y + b.y) / 2 / FP, len, 2.3, 0.7, qy(Math.atan2(-dz, dx), t1), [0.62, 0.44, 0.27]); addProp('box', (a.x + b.x) / 2 / FP, 2.45, (a.y + b.y) / 2 / FP, len + 0.3, 0.3, 0.95, qy(Math.atan2(-dz, dx), t1), [0.2, 0.62, 0.6]); } }
+      addProp('box', 0, 0.12, 0, 26, 0.2, 9, null, [0.5, 0.36, 0.24]); addProp('box', -7, 0.5, 0, 1.1, 0.5, 11, null, [0.66, 0.48, 0.3]); addProp('box', 7, 0.5, 0, 1.1, 0.5, 11, null, [0.66, 0.48, 0.3]);
+      addProp('cyl', -9, 0.4, 13.5, 0.3, 11, 0.3, qm(qy(0.3, t1), qz(-Math.PI / 2, t2), t3), [0.7, 0.55, 0.35]); addProp('box', 2.5, 0.42, 16.9, 2.6, 0.2, 1.3, qy(0.3, t1), [0.2, 0.62, 0.6]);
+      addProp('cyl', 9, 0.4, -13.5, 0.3, 11, 0.3, qm(qy(0.3 + Math.PI, t1), qz(-Math.PI / 2, t2), t3), [0.7, 0.55, 0.35]); addProp('box', -2.5, 0.42, -16.9, 2.6, 0.2, 1.3, qy(0.3, t1), [0.2, 0.62, 0.6]);
+    }
+    // kelp: tall strands in the patches (the hazard) and small decorative tufts
+    const strand = (x, z, h, patch, seed) => { const n = quality ? 6 : 4; for (let s = 0; s < n; s++) props.push({ mesh: 'ball', x, y: h * (s + 0.5) / n, z, sx: 0.62 - s * 0.05, sy: h / n * 0.95, sz: 0.3, q: qy(seed * 6 + s, [0, 0, 0, 1]), col: [0.12 + s * 0.035, 0.5 + s * 0.06, 0.22 + s * 0.02], em: 0, fadeR: patch ? 5 : 0, cx: x, cz: z, sway: (s + 1) / n, seed, tall: patch }); };
+    A.kelp.forEach((k, pi) => { const n = quality ? 34 : 18; for (let i = 0; i < n; i++) { const a = i * 2.39996 + pi, rr = Math.sqrt((i + 0.5) / n) * (k.r / FP - 0.8); strand(k.x / FP + Math.cos(a) * rr, k.y / FP + Math.sin(a) * rr, 6.5 + hsh(i + pi * 31) * 3.5, 1, hsh(i * 7 + pi)); } });
+    for (const p of d.kelpDecor) for (const sgn of [-1, 1]) for (let i = 0; i < 5; i++) strand(p[0] * sgn + Math.cos(i * 2.4) * 1.6 * sgn, p[1] + Math.sin(i * 2.4) * 1.6, 3 + hsh(i + p[0]) * 2.5, 0, hsh(i * 3 + p[1]));
+    // boulders round the rim, pebbles, shells and starfish on the sand (mirrored)
+    for (let i = 0; i < 48; i++) { const a = i / 48 * 6.28318 + 0.065, s = 2.4 + hsh(i) * 2.4, g = 0.42 + hsh(i + 50) * 0.16; addProp('ball', Math.cos(a) * (R + 3.2), s * 0.25, Math.sin(a) * (R + 3.2), s * 1.3, s * 0.85, s * 1.2, qy(i, t1), [g * 0.8, g * 0.9, g * 1.05]); if (i % 3 === 0) addProp('ball', Math.cos(a + 0.06) * (R + 2.2), 1.2 + s * 0.5, Math.sin(a + 0.06) * (R + 2.2), 0.9, 0.9, 0.9, null, coral[i % 4]); }
+    for (let i = 0; i < (quality ? 26 : 12); i++) { const x = 6 + hsh(i * 3.1) * 48, z = hsh(i * 5.7) * 104 - 52; if (x * x + z * z > 54 * 54) continue; const g = 0.6 + hsh(i) * 0.3, s = 0.25 + hsh(i + 7) * 0.4; for (const sg of [-1, 1]) { if (i % 4 === 0) { for (let k = 0; k < 5; k++) addProp('cone', x * sg, 0.08, z, 0.28, 0.95, 0.16, qm(qy(k * 1.2566 * sg, t1), qz(-Math.PI / 2, t2), t3), [1.0, 0.55, 0.35]); addProp('ball', x * sg, 0.1, z, 0.36, 0.2, 0.36, null, [1.0, 0.62, 0.4]); } else if (i % 4 === 1) { addProp('ball', x * sg, 0.12, z, 0.6, 0.3, 0.5, qy(i * sg, t1), [1.0, 0.86, 0.9]); } else addProp('ball', x * sg, 0.02, z, s * 1.4, s * 0.5, s, qy(i * sg, t1), [g * 0.9, g * 0.88, g * 0.8]); } }
+  }
+
+  function spawn(type, x, y, z, vx, vy, vz, life, size, col) { if (fx.parts.length > (quality ? 420 : 160)) return; fx.parts.push({ type, x, y, z, vx, vy, vz, life, max: life, size, col, rot: Math.random() * 6 }); }
+  function burst(type, x, y, z, n, speed, life, size, cols) { if (reduced) n = Math.ceil(n / 3); for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, e = Math.random() * 1.2, s = speed * (0.4 + Math.random() * 0.6); spawn(type, x, y, z, Math.cos(a) * Math.cos(e) * s, Math.sin(e) * s + (type === 0 ? 1.5 : 0), Math.sin(a) * Math.cos(e) * s, life * (0.6 + Math.random() * 0.6), size * (0.6 + Math.random() * 0.7), cols[i % cols.length]); } }
+
+  /* one creature. o: { x, y, z, r, yaw, roll, look, swim, mouth, squash, blink, t, alpha, eq } */
+  function creature(o) {
+    const L = o.look, sh = L.shape, sq = o.squash || 0;
+    base.x = o.x; base.y = o.y; base.z = o.z; base.s = o.r; base.a = o.alpha === undefined ? 1 : o.alpha;
+    qm(qy(o.yaw, t1), qx(o.roll || 0, t2), base.q);
+    const lx = sh[0] * (1 + sq * 0.22), hy = sh[1] * (1 - sq * 0.2), wz = sh[2] * (1 + sq * 0.1), t = o.t, sw = o.swim, eq = o.eq || {};
+    part('sphere', 0, 0, 0, lx, hy, wz, Q0, L.body, 0, 5);
+    const pat = eq.pattern || (L.stripe ? 'stripe' : 'plain');
+    if (pat === 'stripe') part('sphere', -0.6 * lx, 0, 0, 0.11, 0.83 * hy, 0.83 * wz, Q0, L.stripe);
+    else if (pat === 'bands') { for (let i = 0; i < 3; i++) { const bx = -0.55 + i * 0.4, rr = Math.sqrt(1 - bx * bx) * 1.025; part('sphere', bx * lx, 0.02, 0, 0.07, rr * hy, rr * wz, Q0, L.stripe); } }
+    else if (pat === 'spots') { for (let i = 0; i < 11; i++) { const a = i * 2.4, e = 0.45 + (i % 3) * 0.22, cx = Math.cos(a) * Math.cos(e), cz = Math.sin(a) * Math.cos(e), cyy = Math.sin(e); if (cx > 0.15) continue; part('ball', cx * lx * 0.97, cyy * hy * 0.97, cz * wz * 0.97, 0.15, 0.1, 0.15, Q0, L.stripe); } }
+    if (L.zig) { part('sphere', 0.1 * lx, 0.05, 0, 0.07, 1.0 * hy, 1.0 * wz, qz(0.5, t1), L.stripe); part('sphere', -0.3 * lx, 0.05, 0, 0.07, 0.93 * hy, 0.93 * wz, qz(-0.5, t1), L.stripe); }
+    if (L.nubs && quality) { for (let i = 0; i < 6; i++) { const a = 1.2 + i * 0.75, e = 0.5 + (i % 2) * 0.35, cx = -Math.abs(Math.cos(a)) * Math.cos(e) * 0.9 + 0.1, cz = Math.sin(a) * Math.cos(e), cyy = Math.sin(e); part('ball', cx * lx, cyy * hy, cz * wz, 0.1, 0.1, 0.1, Q0, L.fin); } }
+    // eyes
+    const er = 0.27 * (L.eye || 1), blink = o.blink > 0 && o.blink < 0.12 ? 0.12 : 1;
+    for (const s of [-1, 1]) {
+      const ex = 0.52 * lx, ey = 0.36 * hy, ez = 0.5 * wz * s;
+      part('sphere', ex, ey, ez, er, er * blink, er, Q0, WHITE);
+      if (blink === 1) { part('ball', ex + er * 0.62 + (o.lookX || 0) * 0.05, ey + er * 0.08, ez + s * er * 0.3 + (o.lookZ || 0) * 0.06, er * 0.56, er * 0.62, er * 0.56, Q0, DARK); part('ball', ex + er * 1.05, ey + er * 0.38, ez + s * er * 0.22, er * 0.17, er * 0.17, er * 0.17, Q0, WHITE, 1); }
+      if (L.brows) part('box', ex + er * 0.3, ey + er * 1.0, ez, er * 0.5, er * 0.32, er * 1.9, qx(-0.45 * s, t1), L.fin);
+      if (quality) part('ball', 0.66 * lx, -0.06 * hy, 0.62 * wz * s, 0.1, 0.09, 0.06, Q0, [1.0, 0.55, 0.6]);
+      // side fins
+      const flap = Math.sin(t * (5 + sw * 9) + s) * (0.25 + sw * 0.3), fs = eq.fin === 'frilly' ? 0.75 : eq.fin === 'pointy' ? 0.62 : 0.5;
+      part('fin', 0.05 * lx, -0.32 * hy, 0.88 * wz * s, eq.fin === 'pointy' ? fs * 1.3 : fs * 1.1, eq.fin === 'frilly' ? 0.8 : 0.62, 0.5, qm(qy((1.05 + flap) * s, t1), qx(0.75 * s, t2), t3), L.fin);
+    }
+    part('sphere', 0.92 * lx, -0.16 * hy, 0, 0.12, 0.05 + 0.22 * o.mouth, 0.25 + 0.08 * o.mouth, Q0, [0.45, 0.1, 0.2]);
+    // tail and dorsal fin
+    const wag = Math.sin(t * (6 + sw * 10)) * (0.25 + sw * 0.45), tf = eq.fin === 'frilly' ? 1.0 : eq.fin === 'pointy' ? 0.9 : 0.72;
+    part('fin', -0.9 * lx, 0, 0, tf, eq.fin === 'pointy' ? 0.7 : tf * 1.05, 1, qy(wag, t1), L.fin);
+    part('fin', -0.05 * lx, 0.86 * hy, 0, 0.5, 0.42, 1, qz(-0.95, t1), L.fin);
+    if (L.frond) { part('fin', 0.2 * lx, 0.95 * hy, 0, 0.5, 0.3, 1, qz(-1.9 + Math.sin(t * 2) * 0.1, t1), [0.3, 0.8, 0.35]); part('fin', 0.2 * lx, 0.95 * hy, 0, 0.4, 0.26, 1, qz(-1.0 + Math.sin(t * 2 + 1) * 0.1, t1), [0.45, 0.88, 0.4]); }
+    // hats
+    const hat = eq.hat, hx = 0.18 * lx, hy0 = 0.93 * hy;
+    if (hat === 'shell') { part('sphere', hx, hy0, 0, 0.5, 0.3, 0.5, Q0, [1.0, 0.8, 0.86]); part('ball', hx, hy0 + 0.26, 0, 0.2, 0.16, 0.2, Q0, [1.0, 0.6, 0.72]); }
+    else if (hat === 'sprout') { part('cyl', hx, hy0 - 0.05, 0, 0.07, 0.5, 0.07, Q0, [0.3, 0.7, 0.3]); part('fin', hx, hy0 + 0.42, 0, 0.42, 0.3, 1, qz(-2.3, t1), [0.4, 0.85, 0.35]); part('fin', hx, hy0 + 0.42, 0, 0.42, 0.3, 1, qz(-0.8, t1), [0.3, 0.75, 0.3]); }
+    else if (hat === 'cone') { part('cone', hx, hy0 - 0.06, 0, 0.36, 0.85, 0.36, qz(-0.12, t1), [0.3, 0.75, 1.0]); part('ball', hx + 0.1, hy0 + 0.8, 0, 0.14, 0.14, 0.14, Q0, [1.0, 0.9, 0.3], 0.5); part('torus', hx, hy0 + 0.02, 0, 0.37, 1.2, 0.37, Q0, [1.0, 0.9, 0.3]); }
+    else if (hat === 'crown') { part('cyl', hx, hy0 - 0.08, 0, 0.42, 0.26, 0.42, Q0, [1.0, 0.82, 0.25]); for (let i = 0; i < 5; i++) { const a = i * 1.2566; part('cone', hx + Math.cos(a) * 0.34, hy0 + 0.16, Math.sin(a) * 0.34, 0.11, 0.3, 0.11, Q0, [1.0, 0.82, 0.25]); part('ball', hx + Math.cos(a) * 0.34, hy0 + 0.5, Math.sin(a) * 0.34, 0.08, 0.08, 0.08, Q0, [1, 1, 1], 0.6); } }
+  }
+  function minnow(x, y, z, yaw, s, tail, t, alpha, glow) {
+    base.x = x; base.y = y; base.z = z; base.s = s; base.a = alpha; qy(yaw, base.q);
+    part('ball', 0, 0, 0, 1.0, 0.5, 0.42, Q0, [0.62, 0.8, 0.98], glow, 5);
+    part('fin', -0.85, 0, 0, 0.6, 0.6, 1, qy(Math.sin(t * 14 + x) * 0.5, t1), tail, glow);
+    if (quality) { part('ball', 0.62, 0.1, 0.3, 0.13, 0.13, 0.08, Q0, DARK); part('ball', 0.62, 0.1, -0.3, 0.13, 0.13, 0.08, Q0, DARK); }
+  }
+  function seaCow(x, z, yaw, r, t) {
+    base.x = x; base.y = r * 0.72 + Math.sin(t * 1.2 + x) * 0.25; base.z = z; base.s = r; base.a = 1; qy(yaw, base.q);
+    const c = [0.66, 0.66, 0.84], c2 = [0.84, 0.84, 0.95], sw = Math.sin(t * 2.2 + x) * 0.3;
+    part('sphere', -0.05, 0, 0, 1.2, 0.74, 0.86, Q0, c, 0, 5);
+    part('sphere', 1.0, 0.1, 0, 0.56, 0.5, 0.58, Q0, c, 0, 5); part('sphere', 1.42, -0.02, 0, 0.3, 0.27, 0.42, Q0, c2);
+    part('sphere', -1.12, 0, 0, 0.5, 0.32, 0.42, qy(sw * 0.5, t1), c); part('sphere', -1.62, 0, Math.sin(sw) * 0.5, 0.42, 0.1, 0.62, qy(sw, t1), c);
+    for (let i = 0; i < 4; i++) part('ball', -0.5 + i * 0.32, 0.7 - Math.abs(i - 1.5) * 0.05, (i % 2 ? 0.28 : -0.22), 0.14, 0.05, 0.14, Q0, c2);
+    for (const s of [-1, 1]) {
+      part('ball', 1.2, 0.44, 0.33 * s, 0.1, 0.1, 0.09, Q0, DARK); part('ball', 1.25, 0.5, 0.33 * s, 0.035, 0.035, 0.035, Q0, WHITE, 1);
+      part('ball', 1.68, 0.1, 0.13 * s, 0.035, 0.03, 0.035, Q0, DARK); part('ball', 1.3, 0.16, 0.5 * s, 0.1, 0.07, 0.06, Q0, [1.0, 0.62, 0.7]);
+      part('fin', 0.5, -0.25, 0.72 * s, 0.6, 0.5, 0.5, qm(qy((1.15 + Math.sin(t * 2 + s) * 0.25) * s, t1), qx(1.25 * s, t2), t3), c);
+    }
+    GLR.put('disc', 1, x, 0.04, z, r * 1.25, 1, r * 0.95, qy(yaw, t1), SHADOW, 0.3, 0, 2);
+  }
+  function powerup(x, z, type, t, s) {
+    const y = 1.6 + Math.sin(t * 2 + x) * 0.25; base.x = x; base.y = y; base.z = z; base.s = s; base.a = 1; qy(t * 1.5, base.q);
+    if (type === 1) { part('sphere', 0, 0, 0, 0.62, 0.62, 0.62, Q0, [1, 0.97, 0.92], 0.35); part('torus', 0, 0, 0, 0.8, 1.6, 0.8, qx(0.5, t1), [1.0, 0.82, 0.3], 0.4); }
+    else if (type === 2) { part('cone', -0.45, 0, 0, 0.55, 1.1, 0.55, qz(-Math.PI / 2, t1), [1.0, 0.7, 0.75], 0.25); part('ball', -0.5, 0, 0, 0.5, 0.5, 0.5, Q0, [1.0, 0.86, 0.8], 0.25); part('torus', 0.1, 0, 0, 0.3, 1.5, 0.3, qz(Math.PI / 2, t1), [1, 1, 1], 0.5); }
+    else { for (let i = 0; i < 3; i++) part('cone', -0.6 + i * 0.5, 0, 0, 0.5 - i * 0.08, 0.5, 0.5 - i * 0.08, qz(-Math.PI / 2, t1), [0.2, 0.9, 0.85], 0.5); }
+    GLR.put('sphere', 1, x, y, z, 1.25 * s, 1.25 * s, 1.25 * s, Q0, [0.8, 0.97, 1.0], 0.75, 0, 3);
+    GLR.put('disc', 1, x, 0.04, z, 1.2 * s, 1, 1.2 * s, Q0, SHADOW, 0.25, 0, 2);
+  }
+
+  /* draw the whole scene. o: { sim, alpha, dt, focus (slot or -1), camMode, equip, showRings } */
+  const pr = [0, 0, 0];
+  function draw(o) {
+    const sim = o.sim, A = sim.arena, al = o.alpha, dt = o.dt; time += dt; const t = time;
+    if (decorArena !== A.index || o.rebuild) buildProps(A);
+    GLR.begin();
+    const me = o.focus >= 0 ? sim.creatures[o.focus] : null;
+    const mx = me ? (me.px + (me.x - me.px) * al) / FP : 1e6, mz = me ? (me.py + (me.y - me.py) * al) / FP : 1e6;
+    // props (tall ones between the camera and you fade)
+    for (let i = 0; i < props.length; i++) {
+      const p = props[i]; let a = 1, x = p.x, z = p.z, q = p.q;
+      if (p.fadeR && me && me.bubbleT === 0) { const dx = mx - p.cx, dz = mz - p.cz; if (p.tall === 1 && p.sway) { if (Math.abs(dx) < 3.5 && dz < 1.5 && dz > -9) a = 0.22; } else if (dx * dx + dz * dz < p.fadeR * p.fadeR) a = p.tall ? 0.3 : 0.55; }
+      if (p.sway) { const w = p.sway * p.sway; x += Math.sin(t * 1.1 + p.seed * 20 + p.y * 0.3) * 0.9 * w; z += Math.cos(t * 0.8 + p.seed * 13) * 0.4 * w; }
+      GLR.put(p.mesh, 0, x, p.y, z, p.sx, p.sy, p.sz, q, p.col, a, p.em, 0);
+    }
+    // plankton
+    for (let i = 0; i < sim.food.length; i++) { const f = sim.food[i]; if (!f.alive) continue; const x = f.x / FP, z = f.y / FP, c = FOODCOL[i % 5], b = Math.sin(t * 2.2 + i) * 0.14, s = 0.34 + Math.sin(t * 3 + i * 1.7) * 0.04; GLR.put('ball', 0, x, 0.8 + b, z, s, s, s, Q0, c, 1, 0.85, 0); if (quality) GLR.put('disc', 1, x, 0.05, z, 1.0, 1, 1.0, Q0, c, 0.28, 0, 2); }
+    // small fry
+    for (let i = 0; i < sim.fry.length; i++) {
+      const f = sim.fry[i]; if (!f.alive) continue;
+      const x = (f.px + (f.x - f.px) * al) / FP, z = (f.py + (f.y - f.py) * al) / FP;
+      f.vyaw = f.vyaw === undefined ? 0 : f.vyaw; const ty = Math.atan2(-f.hy, f.hx); let dd = ty - f.vyaw; while (dd > Math.PI) dd -= 6.2832; while (dd < -Math.PI) dd += 6.2832; f.vyaw += dd * Math.min(1, dt * 8);
+      const own = f.owner >= 0 ? sim.creatures[f.owner] : null, tail = own ? (own.slot === sim.human && playerLook ? playerLook.body : own.look.body) : [0.45, 0.7, 0.95];
+      const y = 0.9 + Math.sin(t * 3 + i * 2.1) * 0.12 + (f.safeT > 80 && f.dartT >= 0 && f.owner < 0 && f.respawnT === 0 ? Math.sin((f.safeT - 80) / 40 * Math.PI) * 5 : 0);   // a scattered one leaps clear
+      minnow(x, y, z, f.vyaw, 0.85, f.safeT > 0 ? [1.0, 0.6, 0.4] : tail, t, f.safeT > 0 && f.safeT < 100 ? 0.75 : 1, own ? 0.12 : 0);
+      GLR.put('disc', 1, x, 0.04, z, 0.6, 1, 0.45, Q0, SHADOW, 0.22, 0, 2);
+      if (!own && f.court >= 0 && f.court === sim.human && f.courtT > 2) { const k = Math.min(1, f.courtT / CONFIG.school.spareTicks), s = 1.5 - k * 0.7; GLR.put('torus', 0, x, y, z, s, 1.4, s, Q0, [1.0, 0.95, 0.5], 1, 1, 1); }
+    }
+    // power-ups and sea cows
+    for (const p of sim.pups) powerup(p.x / FP, p.y / FP, p.type, t, Math.min(1, (sim.tick - p.born) / 20 + 0.2));
+    for (const k of sim.cows) { const x = (k.px + (k.x - k.px) * al) / FP, z = (k.py + (k.y - k.py) * al) / FP; const ty = Math.atan2(-(k.y - k.py), (k.x - k.px)); k.vyaw = k.vyaw === undefined ? ty : k.vyaw; let dd = ty - k.vyaw; while (dd > Math.PI) dd -= 6.2832; while (dd < -Math.PI) dd += 6.2832; k.vyaw += dd * Math.min(1, dt * 3); seaCow(x, z, k.vyaw, A.cows.r / FP * 0.82, t); }
+    // creatures
+    for (let s = 0; s < 6; s++) {
+      const c = sim.creatures[s], v = views[s]; if (!v) continue;
+      const x = (c.px + (c.x - c.px) * al) / FP, z = (c.py + (c.y - c.py) * al) / FP, r = c.r / FP;
+      v.r = v.r === undefined ? r : v.r + (r - v.r) * Math.min(1, dt * 6);
+      const sp = Math.hypot(c.vx, c.vy) / 40; v.swim += (Math.min(1.6, sp) - v.swim) * Math.min(1, dt * 6);
+      if (sp > 0.08) { const ty = Math.atan2(-c.vy, c.vx); let dd = ty - v.yaw; while (dd > Math.PI) dd -= 6.2832; while (dd < -Math.PI) dd += 6.2832; v.yaw += dd * Math.min(1, dt * 9); v.roll += (Math.max(-0.5, Math.min(0.5, -dd * 1.2)) - v.roll) * Math.min(1, dt * 6); } else v.roll *= 1 - Math.min(1, dt * 5);
+      v.squash = Math.max(0, v.squash - dt * 2.6); v.pop = Math.max(0, v.pop - dt * 3); v.blink -= dt; if (v.blink < 0) v.blink = 2.5 + Math.random() * 3;
+      const look = s === sim.human && playerLook ? playerLook : c.look, eq = s === sim.human ? o.equip : null;
+      if (c.bubbleT > 1e6) { v.vis = 0; continue; }
+      if (c.bubbleT > 0) {                               // floating off in a bubble
+        const k = 1 - c.bubbleT / CONFIG.gulp.bubbleTicks, off = (v.bubOff || 0) * Math.min(1, k * 7), bx = c.bx / FP + (v.bubX || 0) * off + Math.sin(t * 2 + s) * 0.5, bz = c.by / FP + (v.bubZ || 0) * off - k * 2, by = 1.6 + k * 9, rs = Math.max(1.9, r * 0.85);
+        creature({ x: bx, y: by, z: bz, r: rs * 0.72, yaw: v.yaw + t * 1.5, roll: Math.sin(t * 3) * 0.3, look, swim: 0.2, mouth: 0.5, squash: 0, blink: 1, t, eq, alpha: 1 });
+        GLR.put('sphere', 1, bx, by, bz, rs * 1.25, rs * 1.25 * (1 + Math.sin(t * 5) * 0.04), rs * 1.25, Q0, [0.85, 0.97, 1.0], 0.9, 0, 3);
+        GLR.put('disc', 1, bx, 0.04, bz, rs * (1 - k * 0.5), 1, rs * (1 - k * 0.5), Q0, SHADOW, 0.2 * (1 - k), 0, 2);
+        v.sx = bx; v.sz = bz; v.sy = by; v.vis = 1; continue;
+      }
+      // hidden in tall growth from a player outside it
+      const hide = me && c !== me && c.inKelp >= 0 && c.tier <= 1 && me.inKelp !== c.inKelp; v.hid += ((hide ? 1 : 0) - v.hid) * Math.min(1, dt * 5);
+      // mouth opens near prey
+      let open = 0; for (const q of sim.creatures) { if (q === c || q.bubbleT > 0 || q.shield > 0 || !canGulp(c.size, q.size)) continue; const d = Math.hypot(q.x - c.x, q.y - c.y) / FP - r; if (d < 5) open = Math.max(open, 1 - d / 5); }
+      v.mouth += (Math.max(open, c.dashing ? 0.3 : 0.08 + Math.sin(t * 2 + s) * 0.05) - v.mouth) * Math.min(1, dt * 10);
+      const yy = r * 1.02 + 0.25 + Math.sin(t * 2.4 + v.ph) * 0.12 * (reduced ? 0.3 : 1), a = (1 - v.hid * 0.94) * (c.shield > 0 && (sim.tick >> 2) % 2 ? 0.75 : 1);
+      v.sx = x; v.sz = z; v.sy = yy; v.vis = 1 - v.hid;
+      if (a > 0.08) creature({ x, y: yy, z, r: v.r * (1 + v.pop * 0.25), yaw: v.yaw, roll: v.roll, look, swim: v.swim, mouth: v.mouth, squash: v.squash, blink: v.blink, t: t + v.ph, eq, alpha: a });
+      GLR.put('disc', 1, x, 0.04, z, r * 1.15, 1, r * 1.05, Q0, SHADOW, 0.3 * (1 - v.hid), 0, 2);
+      if (c.shield > 0) GLR.put('sphere', 1, x, yy, z, r * 1.45, r * 1.45, r * 1.45, Q0, [0.8, 0.97, 1.0], 0.7, 0, 3);
+      if (c.puShield > 0) { GLR.put('sphere', 1, x, yy, z, r * 1.5, r * 1.5, r * 1.5, Q0, [1.0, 0.92, 0.6], 0.95, 0, 3); const lim = (r + 10); GLR.put('torus', 0, x, 0.12, z, lim * 0.5, 1, lim * 0.5, qy(t, t1), [1.0, 0.9, 0.5], 1, 1, 1); }
+      // trails
+      v.trailT -= dt;
+      if (v.trailT <= 0 && sp > 0.5 && v.hid < 0.5) {
+        v.trailT = c.dashing ? 0.03 : (quality ? 0.16 : 0.3); const bx = x - Math.cos(v.yaw) * r, bz = z + Math.sin(v.yaw) * r, tr = eq ? eq.trail : 'bubbles';
+        if (c.dashing) spawn(1, bx + (Math.random() - 0.5) * r, yy + (Math.random() - 0.5) * r, bz + (Math.random() - 0.5) * r, 0, 0.4, 0, 0.45, 0.22 + r * 0.06, [1, 1, 1]);
+        if (tr === 'sparkle') spawn(2, bx, yy, bz, 0, 0.5, 0, 0.7, 0.16, [1.0, 0.95, 0.5]); else if (tr === 'rainbow') spawn(2, bx, yy, bz, 0, 0.4, 0, 0.9, 0.2, FOODCOL[(sim.tick >> 3) % 5]); else if (tr === 'pearls') spawn(2, bx, yy, bz, 0, 0.3, 0, 0.9, 0.18, [1, 0.97, 0.94]); else spawn(1, bx, yy, bz, (Math.random() - 0.5) * 0.4, 1.3, (Math.random() - 0.5) * 0.4, 0.9, 0.1 + r * 0.04, [0.9, 1, 1]);
+      }
+      // rings: round = you can gulp it, spiky diamond = it can gulp you
+      if (o.showRings && me && c !== me && me.bubbleT === 0 && v.hid < 0.5) {
+        const pc = cb ? [0.2, 0.6, 1.0] : [0.3, 1.0, 0.55], tc = cb ? [1.0, 0.62, 0.0] : [1.0, 0.32, 0.3];
+        if (c.shield === 0 && c.puShield === 0 && me.shield === 0 && canGulp(me.size, c.size)) GLR.put('torus', 0, x, 0.14, z, r * 1.45, 2.2, r * 1.45, Q0, pc, 1, 1, 1);
+        else if (c.shield === 0 && me.shield === 0 && me.puShield === 0 && canGulp(c.size, me.size)) { const k = r * (1.5 + Math.sin(t * 6) * 0.08); for (let i = 0; i < 4; i++) { const a2 = i * 1.5708 + 0.7854; GLR.put('box', 0, x + Math.cos(a2) * k * 0.707, 0.16, z + Math.sin(a2) * k * 0.707, k * 1.42, 0.14, 0.2 + r * 0.05, qy(-a2 + 1.5708, t1), tc, 1, 1, 1); GLR.put('cone', 0, x + Math.cos(i * 1.5708) * k * 1.02, 0.16, z + Math.sin(i * 1.5708) * k * 1.02, 0.22 + r * 0.06, 0.5 + r * 0.12, 0.1, qm(qy(-i * 1.5708, t1), qz(-1.5708, t2), t3), tc, 1, 1, 1); } }
+      }
+    }
+    // current: drifting bubbles show which way it flows
+    if (A.current && quality && !reduced && Math.random() < 0.5) spawn(3, (Math.random() - 0.5) * A.current.hw / FP * 1.8, 0.6 + Math.random() * 2, A.current.y0 / FP + Math.random() * (A.current.y1 - A.current.y0) / FP, 0, 0, A.current.push / FP * 60 * 1.2, 1.4, 0.14, [0.9, 1, 1]);
+    // particles: 0 confetti, 1 bubble, 2 sparkle, 3 drifting bubble
+    for (let i = fx.parts.length - 1; i >= 0; i--) {
+      const p = fx.parts[i]; p.life -= dt; if (p.life <= 0) { fx.parts[i] = fx.parts[fx.parts.length - 1]; fx.parts.pop(); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; const k = p.life / p.max;
+      if (p.type === 4) { const s = p.size * (1.7 - k * 0.9); GLR.put('torus', 1, p.x, p.y, p.z, s, 2.5, s, Q0, p.col, k * 0.9, 0, 1); continue; }
+      if (p.type === 0) { p.vy -= 5 * dt; if (p.vy < -5) p.vy = -5; if (p.y < 0.1) { p.y = 0.1; p.vy = 0; p.vx *= 0.9; p.vz *= 0.9; } p.rot += dt * 7; GLR.put('box', 0, p.x, p.y, p.z, p.size, p.size * 0.15, p.size * 0.6, qm(qy(p.rot, t1), qx(p.rot * 1.3, t2), t3), p.col, 1, 0.4, 0); }
+      else if (p.type === 2) { const s = p.size * (0.4 + k); GLR.put('ball', 0, p.x, p.y, p.z, s, s, s, Q0, p.col, 1, 1, 1); p.vx *= 1 - dt * 2; p.vz *= 1 - dt * 2; p.vy *= 1 - dt * 2; }
+      else { const s = p.size * (1.3 - k * 0.5); GLR.put('ball', 1, p.x, p.y, p.z, s, s, s, Q0, p.col, Math.min(1, k * 2) * 0.9, 0, 3); if (p.type === 1) { p.vx *= 1 - dt * 1.5; p.vz *= 1 - dt * 1.5; } }
+    }
+  }
+  function onEvent(e, sim) {
+    const x = e.x / FP, z = e.y / FP;
+    if (e.t === 'gulp') { views[e.a].squash = 1; const r = sim.creatures[e.a].r / FP, A = sim.creatures[e.a], vb = views[e.b]; let dx = e.x - A.x, dz = e.y - A.y; const dl = Math.hypot(dx, dz); if (dl < 1) { dx = -A.hx; dz = -A.hy; } const dn = Math.hypot(dx, dz) || 1; vb.bubX = dx / dn; vb.bubZ = dz / dn; vb.bubOff = r + 2.6; spawn(4, x, 0.3, z, 0, 0, 0, 0.5, r * 1.6, [1, 1, 1]); burst(1, x, 1.5, z, 14, 4 + r, 0.9, 0.22, [[0.9, 1, 1]]); burst(2, x, 1.5, z, 10, 5 + r, 0.6, 0.2, [[1, 1, 0.7], [1, 0.8, 0.9]]); }
+    else if (e.t === 'return') { views[e.slot].pop = 1; burst(1, x, 1.5, z, 12, 5, 0.7, 0.2, [[0.9, 1, 1]]); }
+    else if (e.t === 'join') { spawn(4, x, 0.9, z, 0, 0, 0, 0.45, 1.6, [1, 0.95, 0.5]); burst(2, x, 1.1, z, 9, 3, 0.7, 0.2, [[1, 0.95, 0.5], [1, 1, 1], [0.6, 1, 0.9]]); }
+    else if (e.t === 'scatter') { const R = sim.creatures[e.by].r / FP; spawn(4, x, 0.3, z, 0, 0, 0, 0.9, R + 3, [1, 0.5, 0.35]); spawn(4, x, 0.3, z, 0, 0, 0, 0.6, R + 1.5, [1, 0.85, 0.4]); burst(2, x, 1.6, z, 14 + e.n * 6, 14, 1.2, 0.45, [[1, 0.5, 0.4], [1, 0.85, 0.4], [1, 1, 1]]); }
+    else if (e.t === 'free') burst(2, x, 1.6, z, 4, 5, 0.9, 0.3, [[1, 0.6, 0.4], [1, 0.9, 0.5], [1, 1, 1]]);
+    else if (e.t === 'eat') { if (quality) spawn(2, x, 0.9, z, 0, 2, 0, 0.35, 0.18, FOODCOL[e.id % 5]); views[e.slot].squash = Math.max(views[e.slot].squash, 0.25); }
+    else if (e.t === 'fry') { views[e.slot].squash = 0.6; burst(1, x, 1, z, 5, 2.5, 0.6, 0.14, [[0.9, 1, 1]]); }
+    else if (e.t === 'pickup' || e.t === 'use') burst(2, x, 1.6, z, 14, 6, 0.8, 0.2, [[1, 0.9, 0.5], [0.6, 1, 1], [1, 1, 1]]);
+  }
+  function confetti(x, y, z, n) { burst(0, x, y, z, n, 9, 3.2, 0.5, [[1, 0.4, 0.4], [1, 0.85, 0.3], [0.4, 0.9, 0.6], [0.4, 0.7, 1], [0.9, 0.5, 1]]); }
+  function rain(n) { const cols = [[1, 0.4, 0.4], [1, 0.85, 0.3], [0.4, 0.9, 0.6], [0.4, 0.7, 1], [0.9, 0.5, 1]]; for (let i = 0; i < n; i++) spawn(0, (Math.random() - 0.5) * 30, 11 + Math.random() * 3, (Math.random() - 0.5) * 9, (Math.random() - 0.5) * 2, -1 - Math.random() * 2, (Math.random() - 0.5) * 2, 4.5, 0.55 + Math.random() * 0.4, cols[i % 5]); }
+  return { reset, draw, onEvent, creature, confetti, rain, views, fx, burst, spawn, set(q, c, r, look) { if (quality !== q) decorArena = -1; quality = q; cb = c; reduced = r; playerLook = look; }, get time() { return time; } };
+})();
+
+/* =====================================================================
+   SOUND - every sound is made here with Web Audio. Silent until the
+   first input.
+   ===================================================================== */
+const Snd = (function () {
+  let ctx = null, master, mg, sg, noiseBuf, timer = null, song = null, step = 0, nextT = 0, muted = false, vol = { music: 0.7, sfx: 0.8 };
+  const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
+  function unlock() {
+    if (ctx) { if (ctx.state === 'suspended' && !document.hidden) ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    try { ctx = new AC(); } catch (e) { ctx = null; return; }
+    master = ctx.createGain(); master.connect(ctx.destination); mg = ctx.createGain(); mg.connect(master); sg = ctx.createGain(); sg.connect(master);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    apply(); if (song) startLoop();
+  }
+  function apply() { if (!ctx) return; master.gain.value = muted ? 0 : 1; mg.gain.value = vol.music * 0.5; sg.gain.value = vol.sfx * 0.9; }
+  function tone(type, f0, f1, t0, dur, g, dest, attack) {
+    const o = ctx.createOscillator(), a = ctx.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t0); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur);
+    a.gain.setValueAtTime(0.0001, t0); a.gain.exponentialRampToValueAtTime(g, t0 + (attack || 0.008)); a.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(a); a.connect(dest || sg); o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  function noise(t0, dur, g, f0, f1, q, dest) {
+    const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = q || 1; f.frequency.setValueAtTime(f0, t0); f.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t0 + dur);
+    const a = ctx.createGain(); a.gain.setValueAtTime(0.0001, t0); a.gain.exponentialRampToValueAtTime(g, t0 + dur * 0.25); a.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    s.connect(f); f.connect(a); a.connect(dest || sg); s.start(t0, Math.random() * 0.5); s.stop(t0 + dur + 0.02);
+  }
+  const fxs = {
+    eat(p) { const f = midi(76 + [0, 2, 4, 7, 9][(p | 0) % 5]); tone('sine', f, f * 1.5, ctx.currentTime, 0.07, 0.07); },
+    plop(size) { const t = ctx.currentTime, f = Math.max(70, 420 - Math.sqrt(size) * 9); tone('sine', f * 2.2, f * 0.6, t, 0.22, 0.5); tone('triangle', f * 1.1, f * 0.4, t + 0.02, 0.3, 0.25); noise(t, 0.12, 0.2, 900, 200, 0.8); },   // deepens with size
+    fry() { const t = ctx.currentTime; tone('sine', 700, 320, t, 0.12, 0.25); },
+    chime(n) { const t = ctx.currentTime, sc = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24]; const f = midi(72 + sc[Math.min(10, Math.max(0, n - 1))]); tone('triangle', f, f, t, 0.35, 0.22); tone('sine', f * 2, f * 2, t + 0.05, 0.3, 0.1); },   // climbs with the school
+    flutter() { const t = ctx.currentTime; for (let i = 0; i < 6; i++) noise(t + i * 0.045, 0.06, 0.22, 2600 - i * 300, 1200 - i * 150, 3); tone('sawtooth', 600, 180, t, 0.3, 0.06); },
+    whoosh() { const t = ctx.currentTime; noise(t, 0.38, 0.3, 300, 2400, 0.7); },
+    pop() { const t = ctx.currentTime; tone('sine', 300, 1300, t, 0.07, 0.4); noise(t, 0.04, 0.25, 3000, 1500, 0.5); },
+    bump() { tone('sine', 160, 90, ctx.currentTime, 0.09, 0.2); },
+    pickup() { const t = ctx.currentTime; [0, 4, 7, 12].forEach((s, i) => tone('triangle', midi(76 + s), midi(76 + s), t + i * 0.05, 0.16, 0.18)); },
+    use() { const t = ctx.currentTime; tone('sawtooth', 220, 880, t, 0.3, 0.1); tone('sine', 440, 1760, t, 0.4, 0.2); },
+    click() { tone('sine', 660, 880, ctx.currentTime, 0.05, 0.15); },
+    whistle() { const t = ctx.currentTime; tone('sine', 1900, 2100, t, 0.5, 0.22, sg, 0.03); tone('sine', 1905, 2300, t, 0.5, 0.12, sg, 0.03); },
+    win() { const t = ctx.currentTime; [0, 4, 7, 12, 16].forEach((s, i) => { tone('triangle', midi(67 + s), midi(67 + s), t + i * 0.11, 0.3, 0.22); tone('sine', midi(79 + s), midi(79 + s), t + i * 0.11, 0.25, 0.1); }); },
+    lose() { const t = ctx.currentTime; [7, 4, 0].forEach((s, i) => tone('triangle', midi(60 + s), midi(60 + s), t + i * 0.16, 0.35, 0.2)); }
+  };
+  function play(name, arg) { if (!ctx || muted || ctx.state !== 'running') return; try { fxs[name](arg); } catch (e) {} }
+  // ---- music: an original 32-step loop per arena, built from its scale ----
+  function startLoop() { if (timer) clearInterval(timer); if (!ctx) return; step = 0; nextT = ctx.currentTime + 0.1; timer = setInterval(tick, 80); }
+  function tick() {
+    if (!ctx || !song || ctx.state !== 'running') return;
+    const spb = 60 / song.tempo / 2;
+    while (nextT < ctx.currentTime + 0.25) {
+      const s = step % 32, bar = (step >> 3) % 4, sc = song.scale, root = song.root, deg = (i) => root + sc[((i % sc.length) + sc.length) % sc.length] + 12 * Math.floor(i / sc.length);
+      const chord = [0, 3, 2, 4][bar];
+      if (s % 8 === 0) { for (const k of [0, 2, 4]) { tone('sine', midi(deg(chord + k)), midi(deg(chord + k)), nextT, spb * 7.5, 0.05, mg, 0.3); } }
+      const bassPat = song.mood === 'bouncy' ? [1, 0, 0, 1, 0, 1, 1, 0] : song.mood === 'hush' ? [1, 0, 0, 0, 0, 0, 1, 0] : [1, 0, 0, 1, 0, 0, 1, 0];
+      if (bassPat[s % 8]) tone('triangle', midi(deg(chord) - 24), midi(deg(chord) - 24), nextT, spb * 1.6, 0.16, mg, 0.01);
+      const mel = song.mood === 'bouncy' ? [4, -1, 5, 4, -1, 2, 4, -1, 5, 7, -1, 5, 4, 2, -1, -1, 4, -1, 5, 4, -1, 2, 1, -1, 2, 4, 2, 1, 0, -1, -1, -1] : song.mood === 'hush' ? [7, -1, -1, 5, -1, -1, 4, -1, -1, -1, 2, -1, 4, -1, -1, -1, 5, -1, -1, 4, -1, -1, 2, -1, -1, -1, 0, -1, 2, -1, -1, -1] : [2, -1, 4, -1, 5, 4, -1, 2, -1, 4, -1, 7, -1, 5, 4, -1, 2, -1, 4, -1, 5, 7, -1, 9, -1, 7, 5, -1, 4, 2, -1, -1];
+      const m = mel[s]; if (m >= 0) { const f = midi(deg(m) + 12); tone('sine', f, f, nextT, spb * 1.8, 0.09, mg, 0.01); tone('triangle', f * 2, f * 2, nextT, spb * 0.8, 0.025, mg, 0.01); }
+      if (song.mood !== 'hush' && s % 4 === 2) noise(nextT, 0.05, 0.03, 6000, 4000, 1, mg);
+      if (song.mood === 'hush' && s % 16 === 8) noise(nextT, 0.9, 0.025, 500, 1500, 0.6, mg);
+      nextT += spb; step++;
+    }
+  }
+  return {
+    unlock, play,
+    music(def) { song = def; if (ctx) startLoop(); },
+    stopMusic() { song = null; if (timer) { clearInterval(timer); timer = null; } },
+    setVolumes(m, s) { vol.music = m / 100; vol.sfx = s / 100; apply(); },
+    toggleMute() { muted = !muted; apply(); return muted; },
+    suspend() { if (ctx && ctx.state === 'running') ctx.suspend(); }, resume() { if (ctx && ctx.state === 'suspended') ctx.resume(); },
+    get ready() { return !!ctx; }, get muted() { return muted; }
+  };
+})();
+
+/* =====================================================================
+   GAME - menus, HUD, input, match flow, tour, cover.
+   ===================================================================== */
+(function () {
+  'use strict';
+  const T = CONFIG.text, $ = (id) => document.getElementById(id), params = new URLSearchParams(location.search);
+  const fmt = (s, o) => s.replace(/\{(\w+)\}/g, (m, k) => o[k]);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  document.documentElement.lang = CONFIG.game.lang; document.documentElement.dir = CONFIG.game.dir; document.title = CONFIG.game.name;
+  let store; try { store = window.localStorage; store.getItem(CONFIG.game.saveKey); } catch (e) { store = memoryStore(); }
+  const loaded = Save.load(store); let save = loaded.data; const persist = () => Save.store(store, save);
+  const G = { screen: '', sim: null, mode: 'classic', arena: 0, playing: false, paused: false, focus: -1, stage: null, cup: null, acc: 0, last: 0, cam: { x: 0, z: 0, h: 70, ready: false }, endT: 0, hintT: 0, showroom: false, podium: null, cover: false, frame: 0, pick: { mode: 'classic', arena: 0 }, back: 'title' };
+  const stats = { cpuMs: 0, frameMs: 16, drawCalls: 0, instances: 0, frames: 0 };
+  const gfxOk = GLR.init($('gl'));
+
+  // ---------- settings ----------
+  function playerLook() { const c = CONFIG.cosmetics.colour.find(i => i.id === save.equip.colour) || CONFIG.cosmetics.colour[0]; return Object.assign({}, CONFIG.hero.look, { body: c.body, belly: c.belly, fin: c.fin }); }
+  function detectQuality() {
+    let low = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || '') || (navigator.hardwareConcurrency || 8) < 4 || (navigator.deviceMemory || 8) < 4;
+    try { const g = document.createElement('canvas').getContext('webgl2'), e = g && g.getExtension('WEBGL_debug_renderer_info'), r = e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : ''; if (/swiftshader|llvmpipe|software/i.test(r)) low = true; } catch (e) {}
+    return low ? 'low' : 'high';
+  }
+  function applySettings() { const s = save.settings; Snd.setVolumes(s.music, s.sfx); document.body.classList.toggle('lefty', !!s.lefty); Scene.set(s.quality === 'high' ? 1 : 0, !!s.cb, !!s.reduced, playerLook()); }
+  let firstRunToast = null;
+  if (save.settings.quality !== 'low' && save.settings.quality !== 'high') { save.settings.quality = detectQuality(); save.settings.qualityAuto = true; persist(); firstRunToast = fmt(T.qualityAuto, { q: T[save.settings.quality] }); }
+  applySettings();
+
+  // ---------- toasts and captions ----------
+  function toast(text) { const box = $('toasts'); while (box.children.length >= 3) box.removeChild(box.firstChild); const d = document.createElement('div'); d.className = 'toast'; d.textContent = text; box.appendChild(d); setTimeout(() => { if (d.parentNode) d.parentNode.removeChild(d); }, 2800); }
+  let capTimer = 0;
+  function caption(text, secs) { const c = $('caption'); if (!text) { c.classList.add('hide'); return; } c.textContent = text; c.classList.remove('hide'); clearTimeout(capTimer); if (secs) capTimer = setTimeout(() => c.classList.add('hide'), secs * 1000); }
+
+  // ---------- screens ----------
+  const screens = $('screens');
+  function show(name, html) { G.screen = name; if (name) $('caption').classList.add('hide'); screens.innerHTML = name ? '<section id="s-' + name + '" class="' + (name === 'title' ? '' : 'screen') + '">' + html + '</section>' : ''; G.showroom = name === 'wardrobe'; const f = screens.querySelector('[data-focus]'); if (f && In.mode !== 'touch') { try { f.focus({ preventScroll: true }); } catch (e) {} } }
+  const btn = (act, label, cls, extra) => '<button class="btn ' + (cls || '') + '" data-act="' + act + '"' + (extra || '') + '>' + esc(label) + '</button>';
+  const head = (title, back) => '<div class="head"><h2>' + esc(title) + '</h2>' + btn(back || 'title', T.back, 'alt') + '</div>';
+  function titleScreen() {
+    const nm = CONFIG.game.name, i = nm.lastIndexOf(' ');
+    show('title', '<div class="logo"><span class="l1">' + esc(i > 0 ? nm.slice(0, i) : nm) + '</span>' + (i > 0 ? '<span class="l2">' + esc(nm.slice(i + 1)) + '</span>' : '') + '</div><div class="col"><div class="tag">' + esc(T.tagline) + '</div>' + btn('play', T.play, 'big', ' data-focus') + '<div class="row">' + btn('cup', T.cup, 'alt') + btn('survival', T.survival, 'alt') + btn('wardrobe', T.wardrobe, 'alt') + btn('settings', T.settings, 'alt') + '</div></div><div class="coins">' + esc(T.coins) + ' <b>' + save.coins + '</b></div>');
+    showHud(false); caption(''); G.playing = false; G.stage = null; G.podium = null; G.focus = -1; if (!G.bgSim) newBg(); G.sim = G.bgSim; Snd.music(CONFIG.arenas[G.sim.arena.index].music);
+  }
+  const arenaChips = (sel, act) => '<div class="cards">' + CONFIG.arenas.map((a, i) => '<button class="chip' + (i === sel ? ' on' : '') + '" data-act="' + act + '" data-i="' + i + '">' + esc(a.name) + '<small>' + esc(a.info) + '</small></button>').join('') + '</div>';
+  function playScreen() {
+    const p = G.pick;
+    show('play', '<div class="panel">' + head(T.play) + '<h3>' + esc(T.chooseMode) + '</h3><div class="cards">' + ['classic', 'feast'].map(m => '<button class="chip' + (p.mode === m ? ' on' : '') + '" data-act="pickMode" data-i="' + m + '">' + esc(CONFIG.modes[m].name) + '<small>' + esc(CONFIG.modes[m].info) + '</small></button>').join('') + '</div><h3>' + esc(T.chooseArena) + '</h3>' + arenaChips(p.arena, 'pickArena') + '<div class="center mt">' + btn('startPick', T.start, 'big', ' data-focus') + '</div></div>');
+  }
+  function survivalScreen() {
+    const top = save.top.length ? '<table>' + save.top.map((r, i) => '<tr><td>' + (i + 1) + '.</td><td class="n">' + esc(T.size) + ' ' + r.size + '</td></tr>').join('') + '</table>' : '<p>' + esc(T.noScores) + '</p>';
+    show('survival', '<div class="panel">' + head(T.survival) + '<p>' + esc(T.survivalIntro) + '</p><h3>' + esc(T.chooseArena) + '</h3>' + arenaChips(G.pick.arena, 'pickArenaS') + '<h3>' + esc(T.topTen) + '</h3>' + top + '<div class="center mt">' + btn('startSurvival', T.start, 'big', ' data-focus') + '</div></div>');
+  }
+  function standingsTable(rows, names) { return '<table><tr><th>' + esc(T.place) + '</th><th></th><th class="n">' + esc(T.points) + '</th><th class="n">' + esc(T.gulps) + '</th></tr>' + rows.map((r, i) => '<tr class="' + (r.slot === 0 ? 'me' : '') + '"><td>' + (i + 1) + '</td><td>' + esc(names[r.slot]) + '</td><td class="n">' + r.points + '</td><td class="n">' + r.gulps + '</td></tr>').join('') + '</table>'; }
+  function cupScreen() {
+    const c = G.cup, M = CONFIG.cup.matches;
+    const list = '<ul>' + M.map((m, i) => '<li>' + esc(fmt(T.cupMatch, { n: i + 1, m: M.length })) + ': ' + esc(CONFIG.modes[m[0]].name) + ', ' + esc(CONFIG.arenas[m[1]].name) + (c && c.results[i] ? ' - ' + esc(c.names[c.results[i].ranking[0]]) : '') + '</li>').join('') + '</ul>';
+    show('cup', '<div class="panel">' + head(CONFIG.cup.name) + '<p>' + esc(T.cupIntro) + '</p>' + list + (c && c.results.length ? '<h3>' + esc(T.cupStandings) + '</h3>' + standingsTable(cupStandings(c.results), c.names) : '') + '<div class="center mt">' + btn('startCup', c && c.results.length ? T.next : T.start, 'big', ' data-focus') + '</div></div>');
+  }
+  const CATS = [['colour', 'catColour'], ['pattern', 'catPattern'], ['fin', 'catFin'], ['hat', 'catHat'], ['trail', 'catTrail']];
+  let wardCat = 'colour';
+  function wardrobeScreen(msg) {
+    const items = CONFIG.cosmetics[wardCat].map(it => { const own = save.owned[wardCat].indexOf(it.id) >= 0, on = save.equip[wardCat] === it.id; return '<button class="item' + (on ? ' on' : '') + (own ? '' : ' locked') + '" data-act="item" data-i="' + it.id + '">' + (it.body ? '<span class="sw" style="background:rgb(' + it.body.map(v => Math.round(v * 255)).join(',') + ')"></span>' : '') + esc(it.name) + '<small>' + (on ? esc(T.equipped) : own ? esc(T.owned) : esc(T.buy) + ' ' + it.price) + '</small></button>'; }).join('');
+    show('wardrobe', '<div class="panel side">' + head(T.wardrobe) + '<p>' + esc(T.coins) + ': <b style="color:#ffd23c">' + save.coins + '</b>' + (msg ? ' - ' + esc(msg) : '') + '</p><div class="seg mt">' + CATS.map(c => '<button data-act="cat" data-i="' + c[0] + '" class="' + (wardCat === c[0] ? 'on' : '') + '">' + esc(T[c[1]]) + '</button>').join('') + '</div><div class="items mt">' + items + '</div></div>');
+  }
+  const seg = (key, opts) => '<div class="seg">' + opts.map(o => '<button data-act="set" data-k="' + key + '" data-v="' + o[0] + '" class="' + (String(save.settings[key]) === String(o[0]) ? 'on' : '') + '">' + esc(o[1]) + '</button>').join('') + '</div>';
+  function settingsScreen(ask) {
+    const s = save.settings, onoff = [[true, T.on], [false, T.off]];
+    show('settings', '<div class="panel">' + head(T.settings, G.back) +
+      '<div class="set"><label for="vm">' + esc(T.setMusic) + '</label><input id="vm" type="range" min="0" max="100" value="' + s.music + '" data-k="music"></div>' +
+      '<div class="set"><label for="vs">' + esc(T.setSfx) + '</label><input id="vs" type="range" min="0" max="100" value="' + s.sfx + '" data-k="sfx"></div>' +
+      '<div class="set"><label>' + esc(T.setDiff) + '</label>' + seg('diff', [['easy', T.easy], ['normal', T.normal], ['hard', T.hard]]) + '</div>' +
+      '<div class="set"><label>' + esc(T.setQuality) + '</label>' + seg('quality', [['low', T.low], ['high', T.high]]) + '</div>' +
+      '<div class="set"><label>' + esc(T.setReduced) + '</label>' + seg('reduced', onoff) + '</div>' +
+      '<div class="set"><label>' + esc(T.setCb) + '</label>' + seg('cb', onoff) + '</div>' +
+      '<div class="set"><label>' + esc(T.setLefty) + '</label>' + seg('lefty', onoff) + '</div>' +
+      '<div class="row mt">' + btn('howto', T.howto, 'alt') + (ask ? '<span>' + esc(T.deleteAsk) + '</span>' + btn('deleteYes', T.deleteYes, 'red') + btn('deleteNo', T.deleteNo, 'alt') : btn('deleteAsk', T.deleteSave, 'red')) + '</div></div>');
+  }
+  function howtoScreen() { show('howto', '<div class="panel">' + head(T.howto, 'settings') + '<ul>' + T.howtoLines.map(l => '<li>' + esc(l) + '</li>').join('') + '</ul><h3>' + esc(T.power) + '</h3><ul>' + CONFIG.powerups.types.map(p => '<li>' + esc(p.name) + ': ' + esc(p.info) + '</li>').join('') + '</ul></div>'); }
+  function pauseScreen() { G.back = 'pause'; show('pause', '<div class="panel" style="width:min(420px,100%)"><h2 class="center">' + esc(T.paused) + '</h2><div class="row mt" style="flex-direction:column">' + btn('resume', T.resume, 'big', ' data-focus') + btn('restart', T.restart, 'alt') + btn('settings', T.settings, 'alt') + btn('quit', T.quit, 'red') + '</div></div>'); }
+  function resultsScreen(r) {
+    const rows = r.ranking.map((slot, i) => { const c = r.sim.creatures[slot]; return '<tr class="' + (slot === 0 ? 'me' : '') + '"><td>' + (i + 1) + '</td><td><span class="dot" style="background:rgb(' + (slot === 0 ? playerLook() : c.look).body.map(v => Math.round(v * 255)).join(',') + ')"></span>' + esc(c.name) + '</td><td class="n">' + c.size + '</td><td class="n">' + c.gulps + '</td><td class="n">' + c.maxSchool + '</td>' + (r.points ? '<td class="n">+' + r.points[i] + '</td>' : '') + '</tr>'; }).join('');
+    const title = r.mode === 'survival' ? T.runOver : r.ranking[0] === 0 ? T.youWin : fmt(T.winner, { name: r.sim.creatures[r.ranking[0]].name });
+    show('results', '<div class="panel"><div class="big-result">' + esc(title) + '</div>' + (r.mode === 'survival' ? '<p class="center">' + esc(fmt(T.bestSize, { n: r.best })) + '</p>' : '') + '<p class="center">' + esc(fmt(T.tierLine, { tier: CONFIG.tiers.names[r.sim.creatures[0].tier] })) + '</p>' + '<p class="center">' + esc(CONFIG.modes[r.mode].name) + ' - ' + esc(CONFIG.arenas[r.arena].name) + (r.cupLine ? ' - ' + esc(r.cupLine) : '') + '</p><table class="mt"><tr><th>' + esc(T.place) + '</th><th></th><th class="n">' + esc(T.size) + '</th><th class="n">' + esc(T.gulps) + '</th><th class="n">' + esc(T.bestSchool) + '</th>' + (r.points ? '<th class="n">' + esc(T.points) + '</th>' : '') + '</tr>' + rows + '</table><p class="center mt" style="color:#ffd23c">' + esc(fmt(T.earned, { n: r.coins })) + '</p><div class="row mt">' + (r.cup ? btn('cupNext', T.next, 'big', ' data-focus') : btn('again', T.again, 'big', ' data-focus') + btn('title', T.menu, 'alt')) + '</div></div>');
+  }
+  function podiumScreen(rows, names, looks, coins) {
+    G.podium = { rows, looks, t: 0 }; G.playing = false; G.stage = null; showHud(false); caption('');
+    if (!G.bgSim) newBg(); G.sim = G.podSim = createSim({ arena: 1, mode: 'classic', seed: 3, scripted: true }); G.sim.creatures.forEach(c => { c.bubbleT = 1e9; }); Scene.reset(G.sim); G.focus = -1;
+    show('podium', '<div class="panel"><div class="head"><h2>' + esc(fmt(T.cupChampion, { name: names[rows[0].slot] })) + (coins ? ' <span style="color:#fff;font-size:.7em">' + esc(fmt(T.earned, { n: coins })) + '</span>' : '') + '</h2>' + btn('title', T.menu, '', ' data-focus') + '</div>' + standingsTable(rows, names) + '</div>');
+    Snd.play('win');
+  }
+
+  // ---------- actions ----------
+  const acts = {
+    title() { G.cup = null; G.back = 'title'; if (G.sim !== G.bgSim) { G.sim = G.bgSim || null; if (G.sim) Scene.reset(G.sim); } titleScreen(); },
+    play() { playScreen(); }, cup() { G.cup = null; cupScreen(); }, survival() { survivalScreen(); }, wardrobe() { wardrobeScreen(); },
+    settings() { if (G.screen === 'title') G.back = 'title'; settingsScreen(); }, howto() { howtoScreen(); },
+    pause() { pauseScreen(); },
+    pickMode(el) { G.pick.mode = el.dataset.i; playScreen(); }, pickArena(el) { G.pick.arena = +el.dataset.i; playScreen(); }, pickArenaS(el) { G.pick.arena = +el.dataset.i; survivalScreen(); },
+    startPick() { startMatch(G.pick.mode, G.pick.arena); }, startSurvival() { startMatch('survival', G.pick.arena); },
+    startCup() { if (!G.cup) G.cup = { results: [], seed: (Date.now() & 0xfffffff) >>> 0, names: null }; const m = CONFIG.cup.matches[G.cup.results.length]; startMatch(m[0], m[1]); },
+    cupNext() { if (G.cup.results.length >= CONFIG.cup.matches.length) { const rows = cupStandings(G.cup.results), place = rows.findIndex(r => r.slot === 0), bonus = CONFIG.coins.cupBonus[place] || 0; save.coins += bonus; if (place === 0) save.cups = (save.cups || 0) + 1; persist(); const c = G.cup; G.cup = null; podiumScreen(rows, c.names, c.looks, bonus); } else cupScreen(); },
+    again() { startMatch(G.mode, G.arena); }, restart() { startMatch(G.mode, G.arena); },
+    resume() { resume(); }, quit() { G.cup = null; G.playing = false; G.paused = false; G.sim = G.bgSim; if (G.sim) Scene.reset(G.sim); G.back = 'title'; titleScreen(); },
+    cat(el) { wardCat = el.dataset.i; wardrobeScreen(); },
+    item(el) { const it = CONFIG.cosmetics[wardCat].find(i => i.id === el.dataset.i); if (!it) return; let msg = ''; if (save.owned[wardCat].indexOf(it.id) < 0) { if (save.coins >= it.price) { save.coins -= it.price; save.owned[wardCat].push(it.id); save.equip[wardCat] = it.id; Snd.play('pickup'); } else msg = T.notEnough; } else save.equip[wardCat] = it.id; persist(); applySettings(); wardrobeScreen(msg); },
+    set(el) { const k = el.dataset.k, v = el.dataset.v; save.settings[k] = v === 'true' ? true : v === 'false' ? false : v; if (k === 'quality') save.settings.qualityAuto = false; persist(); applySettings(); settingsScreen(); },
+    deleteAsk() { settingsScreen(true); }, deleteNo() { settingsScreen(); },
+    deleteYes() { const keep = save.settings.quality; try { store.removeItem(CONFIG.game.saveKey); } catch (e) {} save = Save.fresh(); save.settings.quality = keep; persist(); applySettings(); settingsScreen(); toast(T.deleted); }
+  };
+  screens.addEventListener('click', (e) => { const el = e.target.closest('[data-act]'); if (!el || el.disabled) return; Snd.unlock(); Snd.play('click'); const a = el.dataset.act; if (acts[a]) acts[a](el); });
+  screens.addEventListener('input', (e) => { const k = e.target.dataset && e.target.dataset.k; if (k === 'music' || k === 'sfx') { save.settings[k] = +e.target.value; Snd.setVolumes(save.settings.music, save.settings.sfx); persist(); } });
+
+  // ---------- HUD ----------
+  const labels = []; { const box = $('labels'); for (let i = 0; i < 6; i++) { const d = document.createElement('div'); d.className = 'lab hide'; box.appendChild(d); labels.push(d); } }
+  function showHud(on) { $('hud').classList.toggle('hide', !on); if (!on) { for (const l of labels) l.classList.add('hide'); $('touch').classList.add('hide'); } }
+  $('stSchool').firstElementChild.textContent = T.school; $('mySize').firstElementChild.textContent = T.size; $('stDash').firstElementChild.textContent = T.dash; $('stPow').firstElementChild.textContent = T.power; $('tDash').textContent = T.dash; $('tPow').textContent = T.power;
+  const mapCtx = $('map').getContext('2d'); const pj = [0, 0, 0]; let lastBoard = '';
+  const rgb = (c) => 'rgb(' + Math.round(c[0] * 255) + ',' + Math.round(c[1] * 255) + ',' + Math.round(c[2] * 255) + ')';
+  function updateHud() {
+    const sim = G.sim, me = sim.creatures[G.focus < 0 ? 0 : G.focus], W = innerWidth, H = innerHeight;
+    // labels over heads
+    for (let s = 0; s < 6; s++) { const c = sim.creatures[s], v = Scene.views[s], l = labels[s]; if (!v || v.vis < 0.5 || c.bubbleT > 1e6) { l.classList.add('hide'); continue; } const r = c.bubbleT > 0 ? 1.5 : c.r / FP; GLR.project(v.sx, v.sy + r * 1.25 + 0.4, v.sz, pj); if (pj[2] <= 0 || pj[0] < -0.05 || pj[0] > 1.05 || pj[1] < 0 || pj[1] > 1.05) { l.classList.add('hide'); continue; } l.classList.remove('hide'); const tx = c.name + '|' + c.size; if (l._t !== tx) { l._t = tx; l.innerHTML = esc(c.name) + '<b>' + c.size + '</b>'; } l.style.transform = 'translate(' + Math.round(pj[0] * W) + 'px,' + Math.round(pj[1] * H) + 'px) translate(-50%,-100%)'; }
+    if (G.frame % 6) return;
+    let secs; if (sim.mode === 'survival') secs = (sim.tick / 60) | 0; else secs = Math.max(0, Math.ceil((sim.limit - sim.tick) / 60));
+    $('timer').textContent = ((secs / 60) | 0) + ':' + ('0' + (secs % 60)).slice(-2);
+    const goal = $('goal'); if (sim.mode === 'feast') { goal.classList.remove('hide'); goal.textContent = fmt(T.feastGoal, { n: CONFIG.modes.feast.target }); } else if (sim.mode === 'survival') { goal.classList.remove('hide'); goal.textContent = fmt(T.bubblesLeft, { n: Math.max(0, CONFIG.modes.survival.bubbles - me.gulped) }); } else goal.classList.add('hide');
+    const rk = sim.rank(); let html = ''; for (const s of rk) { const c = sim.creatures[s]; html += '<div class="' + (s === sim.human ? 'me' : '') + '"><span>' + esc(c.name) + '</span><span>' + c.size + '</span></div>'; } if (html !== lastBoard) { lastBoard = html; $('board').innerHTML = html; }
+    $('stSchool').lastElementChild.textContent = me.near + '/' + CONFIG.school.max + (me.school.length > me.near ? ' (' + me.school.length + ')' : '');
+    $('mySize').lastElementChild.textContent = me.size;
+    const dOk = me.puRush > 0 || me.body > CONFIG.dash.minBody; $('stDash').lastElementChild.textContent = me.puRush > 0 ? T.dashFree : dOk ? T.dashReady : T.dashNo; $('stDash').classList.toggle('dim', !dOk);
+    $('stPow').lastElementChild.textContent = me.puShield > 0 ? T.shielded : me.pu ? CONFIG.powerups.types[me.pu - 1].name : T.noPower; $('stPow').classList.toggle('dim', !me.pu && me.puShield === 0);
+    $('tPow').textContent = me.pu ? CONFIG.powerups.types[me.pu - 1].name : T.power; $('tPow').style.opacity = me.pu ? 1 : 0.45;
+    // minimap
+    const m = mapCtx, S = 232, R = sim.arena.R, k = (S / 2 - 6) / R, cx = S / 2; m.clearRect(0, 0, S, S); m.save(); m.beginPath(); m.arc(cx, cx, S / 2 - 4, 0, 7); m.clip();
+    const A = sim.arena; if (A.current) { m.fillStyle = 'rgba(140,240,255,.4)'; m.fillRect(cx - A.current.hw * k, cx + A.current.y0 * k, A.current.hw * 2 * k, (A.current.y1 - A.current.y0) * k); }
+    m.fillStyle = 'rgba(60,200,110,.5)'; for (const p of A.kelp) { m.beginPath(); m.arc(cx + p.x * k, cx + p.y * k, p.r * k, 0, 7); m.fill(); }
+    m.fillStyle = 'rgba(255,170,150,.9)'; for (const p of A.rocks) { m.beginPath(); m.arc(cx + p.x * k, cx + p.y * k, p.r * k, 0, 7); m.fill(); }
+    m.fillStyle = 'rgba(200,210,230,.9)'; for (const p of sim.cows) { m.beginPath(); m.arc(cx + p.x * k, cx + p.y * k, A.cows.r * k, 0, 7); m.fill(); }
+    m.fillStyle = '#fff'; for (const p of sim.pups) { m.fillRect(cx + p.x * k - 4, cx + p.y * k - 4, 8, 8); }
+    m.fillStyle = 'rgba(255,255,255,.75)'; for (const f of sim.fry) if (f.alive && f.owner < 0) m.fillRect(cx + f.x * k - 1.5, cx + f.y * k - 1.5, 3, 3);
+    for (const c of sim.creatures) { if (c.bubbleT > 0) continue; const v = Scene.views[c.slot]; if (v && v.hid > 0.5) continue; m.beginPath(); m.arc(cx + c.x * k, cx + c.y * k, Math.max(5, c.r * k), 0, 7); m.fillStyle = rgb(c.slot === sim.human ? playerLook().body : c.look.body); m.fill(); m.lineWidth = c === me ? 4 : 2; m.strokeStyle = c === me ? '#fff' : 'rgba(0,40,60,.8)'; m.stroke(); }
+    m.restore();
+  }
+
+  // ---------- input ----------
+  const In = { mode: 'mouse', mx: 0.5, my: 0.5, keys: {}, mouseDash: false, touchDash: false, padDash: false, use: false, joy: { id: -1, ox: 0, oy: 0, dx: 0, dy: 0 }, padA: false, padStart: false, px: 0, py: 0 };
+  const KEYMAP = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', Space: 'dash' };
+  const inGame = () => (G.playing && !G.paused && G.screen === '');
+  function firstInput(e) { Snd.unlock(); if (Tour.on && e.isTrusted) Tour.stop(true); }
+  window.addEventListener('pointerdown', firstInput, true); window.addEventListener('keydown', firstInput, true);
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyM' && !e.repeat) { toast(Snd.toggleMute() ? T.muted : T.unmuted); return; }
+    if (e.code === 'Escape') { if (inGame()) pause(); else if (G.paused && G.screen === 'pause') resume(); else if (G.screen && G.screen !== 'title' && !G.playing) { const b = screens.querySelector('.head [data-act]'); if (b) b.click(); } e.preventDefault(); return; }
+    if (!inGame()) return;
+    const k = KEYMAP[e.code]; if (k) { In.keys[k] = true; In.mode = 'keys'; e.preventDefault(); }
+    if (e.code === 'KeyE' && !e.repeat) { In.use = true; In.mode = 'keys'; }
+  });
+  window.addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) In.keys[k] = false; });
+  window.addEventListener('blur', () => { In.keys = {}; In.mouseDash = false; In.touchDash = false; });
+  const cv = $('gl');
+  cv.addEventListener('contextmenu', (e) => e.preventDefault());
+  cv.addEventListener('pointerdown', (e) => {
+    if (!inGame()) return;
+    if (e.pointerType === 'touch') { In.mode = 'touch'; if (In.joy.id < 0) { In.joy.id = e.pointerId; In.joy.ox = e.clientX; In.joy.oy = e.clientY; In.joy.dx = In.joy.dy = 0; const st = $('stick'); st.classList.remove('hide'); st.style.left = e.clientX + 'px'; st.style.top = e.clientY + 'px'; st.firstElementChild.style.transform = ''; } }
+    else { In.mode = 'mouse'; In.mx = e.clientX / innerWidth; In.my = e.clientY / innerHeight; if (e.button === 0) In.mouseDash = true; else if (e.button === 2) In.use = true; }
+    e.preventDefault();
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'touch') { if (e.pointerId === In.joy.id) { let dx = e.clientX - In.joy.ox, dy = e.clientY - In.joy.oy; const d = Math.hypot(dx, dy), mx = 46; if (d > mx) { dx *= mx / d; dy *= mx / d; } In.joy.dx = dx / mx; In.joy.dy = dy / mx; $('stick').firstElementChild.style.transform = 'translate(' + dx + 'px,' + dy + 'px)'; } }
+    else { if (Math.abs(e.clientX - In.px) + Math.abs(e.clientY - In.py) > 2) { In.mode = 'mouse'; In.px = e.clientX; In.py = e.clientY; } In.mx = e.clientX / innerWidth; In.my = e.clientY / innerHeight; }
+  });
+  const endPtr = (e) => { if (e.pointerType === 'touch') { if (e.pointerId === In.joy.id) { In.joy.id = -1; In.joy.dx = In.joy.dy = 0; $('stick').classList.add('hide'); } } else if (e.button === 0) In.mouseDash = false; };
+  window.addEventListener('pointerup', endPtr); window.addEventListener('pointercancel', endPtr);
+  $('tDash').addEventListener('pointerdown', (e) => { In.touchDash = true; In.mode = 'touch'; e.preventDefault(); }); for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('tDash').addEventListener(ev, () => { In.touchDash = false; });
+  $('tPow').addEventListener('pointerdown', (e) => { In.use = true; In.mode = 'touch'; e.preventDefault(); });
+  $('pauseBtn').addEventListener('click', () => { Snd.unlock(); if (inGame()) pause(); });
+  function pollPad() {
+    let p = null; try { const l = navigator.getGamepads ? navigator.getGamepads() : []; for (const g of l) if (g && g.connected !== false) { p = g; break; } } catch (e) {}
+    if (!p) { In.padDash = false; return null; }
+    const ax = p.axes[0] || 0, ay = p.axes[1] || 0, mag = Math.hypot(ax, ay), b = (i) => !!(p.buttons[i] && (p.buttons[i].pressed || p.buttons[i].value > 0.4));
+    const a = b(0), st = b(9); In.padDash = b(7);
+    if (mag > 0.25 || In.padDash || a || st) { if (In.mode !== 'pad') Snd.unlock(); In.mode = 'pad'; }
+    if (a && !In.padA) { if (inGame()) In.use = true; else if (G.screen) { const f = screens.querySelector('[data-focus]'); if (f && !Tour.on) f.click(); } }
+    if (st && !In.padStart) { if (inGame()) pause(); else if (G.paused && G.screen === 'pause') resume(); }
+    In.padA = a; In.padStart = st; return mag > 0.25 ? [ax / Math.max(1, mag), ay / Math.max(1, mag)] : [0, 0];
+  }
+  const pk = [0, 0];
+  function applyInput(c, pad) {
+    let dx = 0, dy = 0;
+    if (In.mode === 'keys') { dx = (In.keys.r ? 1 : 0) - (In.keys.l ? 1 : 0); dy = (In.keys.d ? 1 : 0) - (In.keys.u ? 1 : 0); const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d; }
+    else if (In.mode === 'pad' && pad) { dx = pad[0]; dy = pad[1]; }
+    else if (In.mode === 'touch') { dx = In.joy.dx; dy = In.joy.dy; if (Math.hypot(dx, dy) < 0.15) dx = dy = 0; }
+    else { GLR.pick(In.mx, In.my, pk); const wx = pk[0] - c.x / FP, wz = pk[1] - c.y / FP, d = Math.hypot(wx, wz), dead = c.r / FP * 0.45 + 0.2; if (d > dead) { const m = Math.min(1, (d - dead) / 1.5); dx = wx / d * m; dy = wz / d * m; } }
+    c.in.dx = Math.round(dx * 256); c.in.dy = Math.round(dy * 256);
+    c.in.dash = !!(In.keys.dash || In.mouseDash || In.touchDash || In.padDash);
+    c.in.use = In.use; In.use = false;
+  }
+
+  // ---------- match flow ----------
+  function newBg() { G.bgSim = createSim({ arena: G.bgSim ? (G.bgSim.arena.index + 1) % 3 : 0, mode: 'classic', seed: (Date.now() & 0xfffffff) >>> 0, allBots: true, events: true }); for (let i = 0; i < 240; i++) G.bgSim.step(); G.bgSim.events.length = 0; Scene.reset(G.bgSim); G.cam.ready = false; }
+  function startMatch(mode, arena) {
+    G.mode = mode; G.arena = arena; const seed = ((Date.now() & 0xfffffff) ^ ((Math.random() * 0xffff) | 0)) >>> 0;
+    G.sim = createSim({ arena, mode, seed, diff: save.settings.diff, events: true, rosterSeed: G.cup ? G.cup.seed : undefined });
+    if (save.settings.diff !== 'hard') { G.sim.creatures[0].shield = CONFIG.gulp.startShield; for (let i = 1; i < 6; i++) { const ai = G.sim.creatures[i].ai; ai.ignore = 0; ai.ignoreT = CONFIG.bots.startGrace; } }
+    if (G.cup && !G.cup.names) { G.cup.names = G.sim.creatures.map(c => c.name); G.cup.looks = G.sim.creatures.map((c, i) => i === 0 ? null : c.look); }
+    G.focus = 0; G.playing = true; G.paused = false; G.stage = null; G.podium = null; G.endT = 0; G.acc = 0; G.cam.ready = false; G.matchT = 0; G.hintQ = []; G.hintUntil = 0; lastBoard = '';
+    Scene.reset(G.sim); show('', ''); showHud(true); Snd.music(CONFIG.arenas[arena].music);
+    caption(mode === 'feast' ? fmt(T.feastGoal, { n: CONFIG.modes.feast.target }) : mode === 'survival' ? fmt(T.bubblesLeft, { n: CONFIG.modes.survival.bubbles }) : T.go, 2.2);
+    if (!save.hints.eat) hint('eat', T.hintEat, 2.6);
+  }
+  function hint(key, text, delay) { if (save.hints[key] || G.stage) return; save.hints[key] = true; persist(); G.hintQ.push({ text, at: G.matchT + (delay || 0) }); }
+  function pause() { if (!G.playing || G.paused) return; G.paused = true; In.keys = {}; In.mouseDash = In.touchDash = false; $('stick').classList.add('hide'); In.joy.id = -1; pauseScreen(); }
+  function resume() { G.paused = false; show('', ''); G.last = performance.now(); }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { if (inGame()) pause(); Snd.suspend(); } else { Snd.resume(); G.last = performance.now(); } });
+  function endMatch() {
+    const sim = G.sim, me = sim.creatures[0], place = sim.ranking.indexOf(0), K = CONFIG.coins; G.playing = false; showHud(false); caption('');
+    let coins = sim.mode === 'survival' ? ((me.bestSize / K.survivalDiv) | 0) : K.place[place]; coins += me.gulps * K.perGulp + me.maxSchool * K.perMember;
+    save.coins += coins; const r = { sim, mode: sim.mode, arena: G.arena, ranking: sim.ranking, coins, best: me.bestSize };
+    if (sim.mode === 'survival') Save.addScore(save, me.bestSize);
+    if (G.cup) { G.cup.results.push({ ranking: sim.ranking.slice(), gulps: sim.creatures.map(c => c.gulps) }); r.cup = true; r.points = CONFIG.cup.points; r.cupLine = fmt(T.cupMatch, { n: G.cup.results.length, m: CONFIG.cup.matches.length }); }
+    persist(); Snd.play(place === 0 && sim.mode !== 'survival' ? 'win' : 'lose'); if (place === 0 && sim.mode !== 'survival' && !save.settings.reduced) Scene.confetti(me.x / FP, 6, me.y / FP, 60);
+    resultsScreen(r);
+  }
+  function handleEvents(sim, audible) {
+    const ev = sim.events; if (!ev) return; const me = sim.human, hero = me >= 0 ? sim.creatures[me] : null;
+    for (let i = 0; i < ev.length; i++) {
+      const e = ev[i]; if (e.t === 'food' || e.t === 'pup') continue; Scene.onEvent(e, sim);
+      if (!audible) continue;
+      const mine = e.slot === me || e.a === me || e.b === me || e.owner === me || e.by === me;
+      let near = mine; if (!near && hero && e.x !== undefined) { const dx = (e.x - hero.x) / FP, dy = (e.y - hero.y) / FP; near = dx * dx + dy * dy < 30 * 30; }
+      if (!near) continue;
+      if (e.t === 'eat') { if (e.slot === me) Snd.play('eat', sim.tick >> 3); }
+      else if (e.t === 'gulp') { Snd.play('plop', sim.creatures[e.a].size); if (!G.stage) { if (e.a === me) toast(fmt(T.youGulped, { name: sim.creatures[e.b].name })); if (e.b === me) toast(fmt(T.gulpedYou, { name: sim.creatures[e.a].name })); } }
+      else if (e.t === 'fry') Snd.play('fry');
+      else if (e.t === 'join') { if (e.slot === me) { Snd.play('chime', e.n); if (!G.stage) toast(fmt(T.joined, { n: e.n })); } }
+      else if (e.t === 'scatter') { Snd.play('flutter'); if (e.owner === me && !G.stage) toast(T.scattered); }
+      else if (e.t === 'dash') { if (mine) Snd.play('whoosh'); }
+      else if (e.t === 'return') Snd.play('pop');
+      else if (e.t === 'bump') { if (mine) Snd.play('bump'); }
+      else if (e.t === 'pickup') { if (mine) { Snd.play('pickup'); if (!G.stage) toast(fmt(T.gotPower, { name: CONFIG.powerups.types[e.type - 1].name })); } }
+      else if (e.t === 'use') Snd.play('use');
+      else if (e.t === 'end') Snd.play('whistle');
+    }
+    ev.length = 0;
+  }
+  function hintsTick(sim) {
+    const me = sim.creatures[0]; if (G.frame % 20 === 0 && me.bubbleT === 0) {
+      if (!save.hints.spare) for (const f of sim.fry) if (f.alive && f.owner < 0 && Math.hypot(f.x - me.x, f.y - me.y) < 12 * FP) { hint('spare', T.hintSpare); break; }
+      for (const c of sim.creatures) { if (c === me || c.bubbleT > 0) continue; const d = Math.hypot(c.x - me.x, c.y - me.y) / FP; if (d < 24 && !save.hints.flee && canGulp(c.size, me.size)) hint('flee', T.hintFlee); if (d < 24 && !save.hints.ring && canGulp(me.size, c.size)) hint('ring', T.hintRing); }
+      if (!save.hints.dash && G.matchT > 22) hint('dash', T.hintDash);
+    }
+    if (G.hintQ.length && G.matchT >= G.hintQ[0].at && G.matchT > (G.hintUntil || 0)) { const h = G.hintQ.shift(); caption(h.text, 5); G.hintUntil = G.matchT + 6; }
+  }
+
+  // ---------- staged scenes for the tour, the cover and screenshots ----------
+  function mkStage(name) {
+    const ar = name === 'kelp' ? 1 : name === 'cows' ? 2 : 0;
+    const s = createSim({ arena: ar, mode: 'classic', seed: 99, scripted: true, events: true }), C = s.creatures;
+    const dirTo = (c, x, y, mag) => { const dx = x * FP - c.x, dy = y * FP - c.y, d = Math.hypot(dx, dy) || 1; c.in.dx = Math.round(dx / d * (mag || 256)); c.in.dy = Math.round(dy / d * (mag || 256)); };
+    const circ = (c, t, w) => { c.in.dx = Math.round(Math.cos(t * (w || 0.012) + c.slot * 2) * 150); c.in.dy = Math.round(Math.sin(t * (w || 0.012) + c.slot * 2) * 150); };
+    const stop = (c) => { c.in.dx = 0; c.in.dy = 0; c.in.dash = false; };
+    const school = (slot, n) => { const c = C[slot]; for (let k = 0; k < n; k++) s.addFry(c.x / FP - 2.6 - k * 0.7, c.y / FP + ((k % 3) - 1) * 1.1, slot); };
+    const sprinkle = (cx, cy, n, rad, sd) => { for (let i = 0; i < n; i++) { const a = i * 2.39996 + sd, r = Math.sqrt((i + 0.5) / n) * rad; s.addFood(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } };
+    let drive = null;
+    if (name === 'school') {
+      s.place(0, -37, 22, 112); s.place(1, -8, -34, 190); s.place(2, 22, 30, 120); s.place(3, 30, -22, 150); s.place(4, 42, 8, 105); s.place(5, 16, -46, 130); school(3, 5);
+      for (let i = 0; i < 8; i++) s.addFry(-29.5 + i * 3, 22 + (i % 2 ? 3.5 : -3.5), -1);
+      sprinkle(-20, 20, 46, 20, 1); sprinkle(24, 0, 40, 30, 2);
+      drive = (t) => { const p = C[0]; if (t < 30) stop(p); else if (t < 400) { p.in.dx = 112; p.in.dy = 0; } else { p.in.dx = 150; p.in.dy = -90; } for (let i = 1; i < 6; i++) circ(C[i], t); };
+    } else if (name === 'gulp') {
+      s.place(0, -40, 24, 300); s.place(2, -29, 24, 130); s.place(1, 26, -30, 220); s.place(3, 34, 26, 140); s.place(4, -10, -44, 110); s.place(5, 40, -6, 100); school(0, 4); school(3, 4);
+      sprinkle(-16, 26, 40, 20, 3); sprinkle(20, 0, 40, 30, 4);
+      drive = (t) => { const p = C[0], z = C[2]; if (t < 40) { stop(p); stop(z); } else { if (z.bubbleT === 0) { z.in.dx = 256; z.in.dy = z.gulped ? 60 : 0; } if (z.gulped === 0) { dirTo(p, z.x / FP, z.y / FP); p.in.dash = true; } else { p.in.dash = false; p.in.dx = 120; p.in.dy = 40; } } for (const i of [1, 3, 4, 5]) circ(C[i], t); };
+    } else if (name === 'scatter') {
+      s.place(0, -30, 12, 160); s.place(1, -53, 17.8, 430); s.place(2, 20, -30, 120); s.place(3, 34, 20, 150); s.place(4, -10, -44, 110); s.place(5, 40, -10, 100); school(0, 8); school(3, 3);
+      sprinkle(-16, 2, 40, 14, 5); sprinkle(24, 0, 30, 30, 6);
+      drive = (t) => { const p = C[0], g = C[1]; if (t < 185) { p.in.dx = 140; p.in.dy = 0; p.in.dash = false; } else if (t < 235) { p.in.dx = 120; p.in.dy = -230; p.in.dash = true; } else { p.in.dash = false; p.in.dx = 90; p.in.dy = -200; }
+        if (t < 60) stop(g); else if (t < 178) { g.in.dx = 256; g.in.dy = 0; g.in.dash = t > 80; } else if (t < 260) { g.in.dx = 60; g.in.dy = 250; g.in.dash = t < 200; } else { g.in.dash = false; g.in.dx = 200; g.in.dy = 160; } for (const i of [2, 3, 4, 5]) circ(C[i], t); };
+    } else if (name === 'powerup') {
+      s.place(0, -47, 8, 140); s.place(1, 30, -30, 200); s.place(2, 20, 34, 120); s.place(3, 36, 4, 150); s.place(4, -10, -46, 110); s.place(5, 0, 44, 100); school(3, 4);
+      s.addPup(-39, 8, 2); for (let i = 0; i < 10; i++) { const a = (-64 + i * 14.5) * Math.PI / 180, r = i % 2 ? 12.4 : 10.2; s.addFry(-36 + Math.cos(a) * r, 8 + Math.sin(a) * r, -1); }
+      sprinkle(-30, 10, 30, 18, 7);
+      drive = (t) => { const p = C[0]; if (t < 30) stop(p); else if (p.x < -37 * FP) { p.in.dx = 256; p.in.dy = 0; } else if (t < 260) { stop(p); if (t === 170) p.in.use = true; } else { p.in.dx = 110; p.in.dy = 150; } for (let i = 1; i < 6; i++) circ(C[i], t); };
+    } else if (name === 'current') {
+      s.place(0, 0.5, -36, 150); s.place(2, -2.5, -46, 120); s.place(1, 3, -24, 200); s.place(3, 30, -10, 150); s.place(4, -34, 10, 110); s.place(5, -20, 40, 100); school(0, 4); school(3, 4);
+      for (let i = 0; i < 5; i++) s.addFry((i % 2 ? 2.5 : -2.5), -30 + i * 2.4, -1);
+      sprinkle(-18, -8, 30, 16, 8); sprinkle(18, -8, 30, 16, 9);
+      drive = (t) => { const p = C[0]; if (t < 250) stop(p); else { p.in.dx = 256; p.in.dy = 0; } stop(C[2]); if (t < 200) stop(C[1]); else { C[1].in.dx = -256; C[1].in.dy = 0; } for (const i of [3, 4, 5]) circ(C[i], t); };
+    } else if (name === 'kelp') {
+      s.place(0, -22, -15, 120); s.place(1, -45, -27, 700); s.place(3, -6, -34, 150); s.place(2, 30, 20, 120); s.place(4, 10, 40, 110); s.place(5, 40, -20, 100); school(3, 5); school(0, 2);
+      sprinkle(-24, -22, 26, 10, 10); sprinkle(-6, -6, 30, 14, 11);
+      drive = (t) => { const p = C[0], g = C[1]; if (t < 60) stop(p); else if (t < 250) { p.in.dx = 30; p.in.dy = -60; } else { p.in.dx = 180; p.in.dy = 180; } if (t < 20) stop(g); else { g.in.dx = 256; g.in.dy = t > 200 ? -80 : 0; } for (const i of [2, 3, 4, 5]) circ(C[i], t, 0.01); };
+    } else if (name === 'cows') {
+      for (let i = 0; i < 6; i++) s.place(i, 30 + i * 4, 40, 100);
+      for (let i = 0; i < 430; i++) s.step(); s.tick = 0; s.events.length = 0;
+      s.place(0, -19.5, 6, 130); s.place(2, -21, 12.5, 170); s.place(1, 30, -30, 240); s.place(3, 28, 22, 150); s.place(4, -4, -2, 110); s.place(5, -40, 30, 100); school(0, 3); school(3, 4);
+      sprinkle(-18, 4, 30, 14, 12); sprinkle(16, 0, 30, 24, 13);
+      drive = (t) => { const p = C[0]; if (t < 300) stop(p); else { p.in.dx = 230; p.in.dy = -100; } stop(C[2]); stop(C[4]); for (const i of [1, 3, 5]) circ(C[i], t); };
+    } else if (name === 'cover') {
+      s.place(0, -14, 16, 240); s.place(1, -21, -10, 520); s.place(2, -1, 5, 130); s.place(3, -44, 26, 150); s.place(4, 20, 30, 105); s.place(5, 30, -40, 100);
+      C[0].hx = 250; C[0].hy = 40; C[1].hx = 250; C[1].hy = 120; C[2].hx = 240; C[2].hy = -80; C[3].hx = 256; C[3].hy = -40;
+      for (let k = 0; k < 7; k++) { const f = s.addFry(-18.5 - (k >> 1) * 1.7 - (k % 2) * 0.5, 16 + (k % 2 ? 1.6 : -1.5) + (k >> 1) * 0.3 * (k % 2 ? 1 : -1), 0); f.hx = 250; f.hy = 30; }
+      for (let k = 0; k < 4; k++) { const f = s.addFry(-48 - k * 1.2, 27 + (k % 2 ? 1.2 : -1.2), 3); f.hx = 256; f.hy = -30; }
+      sprinkle(-8, 16, 34, 13, 14); sprinkle(-30, 20, 16, 12, 15); s.addPup(2, 22, 1);
+      drive = () => {};
+    }
+    for (const c of C) s.computeSize(c);
+    s.events.length = 0; s.human = 0;
+    return { name, sim: s, drive, t: 0 };
+  }
+  function runStage(name, cap) { const st = mkStage(name); G.stage = st; G.sim = st.sim; G.focus = 0; G.playing = false; G.paused = false; G.podium = null; G.acc = 0; G.cam.ready = false; lastBoard = ''; Scene.reset(st.sim); show('', ''); showHud(true); Snd.music(CONFIG.arenas[st.sim.arena.index].music); caption(cap || ''); return st; }
+  function stageAt(name, ticks) { const st = runStage(name); for (let i = 0; i < ticks; i++) { st.drive(st.t++); st.sim.step(); handleEvents(st.sim, false); } return st; }
+  function samplePodium() { const s = createSim({ arena: 0, mode: 'classic', seed: 4, rosterSeed: 4 }); const names = s.creatures.map(c => c.name), looks = s.creatures.map((c, i) => i === 0 ? null : c.look); const res = [[0, 1, 3, 2, 4, 5], [1, 0, 2, 3, 5, 4], [0, 3, 1, 2, 4, 5], [3, 0, 1, 4, 2, 5], [0, 1, 3, 2, 5, 4]].map((r, i) => ({ ranking: r, gulps: [3, 4, 1, 1, 0, 1].map((g, k) => (g + i * k) % 5) })); podiumScreen(cupStandings(res), names, looks, 0); }
+
+  const Tour = {
+    on: false, i: -1, until: 0, list: [['title', 5], ['school', 9], ['gulp', 7], ['scatter', 8], ['powerup', 7], ['current', 6], ['kelp', 6], ['cows', 6], ['podium', 6]],
+    start() { Tour.on = true; Tour.i = -1; Tour.until = 0; Tour.t0 = performance.now(); },
+    step(now) { if (!Tour.on || now < Tour.until) return; Tour.i++; if (Tour.i >= Tour.list.length) { Tour.stop(false); return; } const [n, secs] = Tour.list[Tour.i]; Tour.until = (Tour.i === 0 ? now : Tour.until) + secs * 1000; if (n === 'title') { titleScreen(); caption(''); } else if (n === 'podium') { samplePodium(); caption(''); } else runStage(n, T.tour[Tour.i]); },
+    stop(byUser) { if (!Tour.on) return; Tour.on = false; G.stage = null; caption(''); G.sim = G.bgSim; if (G.sim) Scene.reset(G.sim); G.cam.ready = false; titleScreen(); if (byUser) toast(T.tourStop); window.__tourDone = true; }
+  };
+
+  // ---------- drawing and the main loop ----------
+  const env = { fog: [0, 0, 0], fogA: 80, fogB: 300, t: 0, q: 1, R: 60, sand: [1, 1, 1], water: [0, 0, 0], cur: [0, 0, 0, 0], kelp: new Float32Array(12), nook: new Float32Array(9) };
+  const qt = [0, 0, 0, 1], Q0 = [0, 0, 0, 1];
+  function setEnv(sim, dist) {
+    const A = sim.arena, d = A.def; env.sand = d.sand; env.water = d.water; env.fog = [d.water[0] * 0.9 + 0.05, d.water[1] * 0.95 + 0.05, d.water[2] * 0.95 + 0.06]; env.fogA = dist * 1.4; env.fogB = dist * 4.2; env.R = A.R / FP; env.q = save.settings.quality === 'high' ? 1 : 0; env.t = save.settings.reduced ? Scene.time * 0.3 : Scene.time;
+    env.cur[3] = A.current ? 1 : 0; if (A.current) { env.cur[0] = A.current.hw / FP; env.cur[1] = A.current.y0 / FP; env.cur[2] = A.current.y1 / FP; }
+    env.kelp.fill(0); A.kelp.forEach((k, i) => { if (i < 4) { env.kelp[i * 3] = k.x / FP; env.kelp[i * 3 + 1] = k.y / FP; env.kelp[i * 3 + 2] = k.r / FP; } });
+    env.nook.fill(0); A.nooks.forEach((k, i) => { if (i < 3) { env.nook[i * 3] = k.x / FP; env.nook[i * 3 + 1] = k.y / FP; env.nook[i * 3 + 2] = k.r / FP; } });
+  }
+  function drawFrame(dt, al) {
+    const sim = G.sim, aspect = innerWidth / Math.max(1, innerHeight), pf = aspect < 1 ? 1 + (1 - aspect) * 1.1 : 1, cam = G.cam;
+    GLR.resize(save.settings.quality === 'high' ? Math.min(window.devicePixelRatio || 1, 2) : Math.min(window.devicePixelRatio || 1, 1));
+    let eye, tgt, dist = 60;
+    const equip = save.equip;
+    if (G.showroom) { const sx = aspect > 1 ? 2.6 : 0, sy = aspect > 1 ? 0 : -2.6; eye = [sx, 41 + sy, 13 * pf]; tgt = [sx, 40 + sy, 0]; dist = 30; }
+    else if (G.podium) { eye = [0, 8, 34 * pf]; tgt = [0, aspect > 1 ? -0.4 : -4.5 * pf, 0]; dist = 40; }
+    else if (G.cover) { eye = [-7.5, 11, 39]; tgt = [-14, 2.0, 14]; dist = 36; }
+    else {
+      let tx = 0, tz = 0, h = 66;
+      if (G.focus >= 0) { const c = sim.creatures[G.focus], v = Scene.views[G.focus]; if (c.bubbleT > 0 && v) { tx = v.sx; tz = v.sz + 2; } else { tx = (c.px + (c.x - c.px) * al) / FP; tz = (c.py + (c.y - c.py) * al) / FP; } h = 30 + 12 * (c.r / FP); }
+      else { let bd = 1e18, bx = 0, bz = 0; for (let i = 0; i < 6; i++) for (let j = i + 1; j < 6; j++) { const p = sim.creatures[i], q = sim.creatures[j]; if (p.bubbleT > 0 || q.bubbleT > 0) continue; const d = (p.x - q.x) * (p.x - q.x) + (p.y - q.y) * (p.y - q.y); if (d < bd) { bd = d; bx = (p.x + q.x) / 2 / FP; bz = (p.y + q.y) / 2 / FP; } } tx = bx * 0.85 + (aspect > 1.2 ? 15 : 0); tz = bz * 0.85 + (aspect > 1.2 ? 2 : 13); const tl = Math.hypot(tx, tz); if (tl > 26) { tx *= 26 / tl; tz *= 26 / tl; } h = aspect > 1 ? 46 : 56; }   // the title follows the closest chase
+      h *= pf;
+      if (!cam.ready) { cam.x = tx; cam.z = tz; cam.h = h; cam.ready = true; }
+      const k = Math.min(1, dt * (G.focus >= 0 ? 7 : 0.6)); cam.x += (tx - cam.x) * k; cam.z += (tz - cam.z) * k; cam.h += (h - cam.h) * Math.min(1, dt * 2);
+      eye = [cam.x, cam.h, cam.z + cam.h * 0.62]; tgt = [cam.x, 0, cam.z]; dist = cam.h * 1.18;
+    }
+    GLR.setCamera(eye, tgt, aspect); setEnv(sim, dist);
+    Scene.draw({ sim, alpha: al, dt, focus: (G.playing || G.stage) ? G.focus : -1, equip, showRings: (G.playing || !!G.stage) });
+    if (G.showroom) { const t = Scene.time; Scene.creature({ x: 0, y: 40 + Math.sin(t * 2) * 0.15, z: 0, r: 2.05, yaw: -Math.PI / 2 + 0.5 + Math.sin(t * 0.6) * 0.9, roll: 0, look: playerLook(), swim: 0.5, mouth: 0.15, squash: 0, blink: (t % 3.4), t, eq: equip, alpha: 1 }); for (let i = 0; i < 4; i++) { const a = t * 0.8 + i * 1.57; Scene.spawn(1, Math.cos(a) * 4, 37 + (i * 1.7 + t) % 6, Math.sin(a) * 2 - 1, 0, 0.8, 0, 0.05, 0.16, [0.9, 1, 1]); } }
+    if (G.podium) {
+      const P = G.podium, t = Scene.time, hs = [4.6, 3.2, 2.2], xs = [0, -7.2, 7.2]; P.t += dt;
+      for (let i = 0; i < 3; i++) {
+        const h = hs[i], x = xs[i]; GLR.put('box', 0, x, h / 2, 0, 6.6, h, 5.4, Q0, [[1.0, 0.82, 0.3], [0.78, 0.86, 0.92], [0.95, 0.62, 0.42]][i], 1, 0, 0); GLR.put('box', 0, x, h + 0.12, 0, 7.0, 0.3, 5.8, Q0, [0.2, 0.62, 0.6], 1, 0, 0);
+        for (let k = 0; k <= i; k++) GLR.put('ball', 0, x + (k - i / 2) * 0.9, h * 0.55, 2.75, 0.3, 0.3, 0.14, Q0, [1, 1, 1], 1, 0.6, 0);
+        const row = P.rows[i]; if (!row) continue; const look = row.slot === 0 ? playerLook() : P.looks[row.slot], hop = i === 0 ? Math.abs(Math.sin(t * 4)) * 0.9 : Math.abs(Math.sin(t * 2.4 + i)) * 0.25;
+        Scene.creature({ x, y: h + 2.3 + hop, z: 0.2, r: 2.1, yaw: -Math.PI / 2 + Math.sin(t * 1.5 + i) * 0.25, roll: 0, look, swim: 0.8, mouth: i === 0 ? 0.7 : 0.2, squash: 0, blink: (t + i) % 3.1, t: t + i, eq: row.slot === 0 ? equip : null, alpha: 1 });
+      }
+      if (!save.settings.reduced && P.t > 0.2) { P.t = 0; Scene.rain(5); }
+    }
+    GLR.render(env);
+  }
+  let slowFrames = 0;
+  function frame(now) {
+    requestAnimationFrame(frame);
+    const real = Math.min(G.stage ? 0.25 : 0.1, Math.max(0, (now - G.last) / 1000));   // a slow frame may catch up a little; scripted scenes a bit more G.last = now; G.frame++;
+    if (document.hidden || !gfxOk) return;
+    const t0 = performance.now(); Tour.step(now); const pad = pollPad(); let dt = real, sim = G.sim; if (!sim) return;
+    if (G.cover || G.paused) dt = 0;
+    else {
+      G.acc += G.hold ? 0 : real; let n = 0;
+      const cap = G.stage ? 16 : 7;
+      while (G.acc >= 1 / 60 && n < cap) {
+        G.acc -= 1 / 60; n++;
+        if (G.stage) { G.stage.drive(G.stage.t++); sim.step(); handleEvents(sim, true); }
+        else if (G.playing) { applyInput(sim.creatures[0], pad); sim.step(); G.matchT += 1 / 60; handleEvents(sim, true); hintsTick(sim); if (sim.over && !G.endT) { G.endT = now + 1500; caption(sim.mode === 'survival' ? T.runOver : T.timeUp, 1.4); } }
+        else if (G.podium || G.screen === 'results') { /* a still stage */ }
+        else { sim.step(); handleEvents(sim, false); if (sim.over) { newBg(); sim = G.sim = G.bgSim; } }
+      }
+      if (n === cap) G.acc = 0;
+    }
+    if (G.playing && G.endT && now > G.endT) { G.endT = 0; endMatch(); sim = G.sim; }
+    const al = (sim.over || G.paused || G.cover) ? 1 : Math.min(1, G.acc * 60);
+    drawFrame(dt, al);
+    const hudOn = (G.playing || G.stage) && !G.cover; if (hudOn) updateHud();
+    const touchOn = In.mode === 'touch' && G.playing && !G.paused; $('touch').classList.toggle('hide', !touchOn); document.body.classList.toggle('touching', touchOn);
+    const cpu = performance.now() - t0; stats.cpuMs += (cpu - stats.cpuMs) * 0.05; stats.frameMs += (real * 1000 - stats.frameMs) * 0.05; stats.drawCalls = GLR.stats.drawCalls; stats.instances = GLR.stats.instances; stats.frames++;
+    if (save.settings.qualityAuto && save.settings.quality === 'high' && G.playing && !G.paused) { slowFrames = real > 0.04 ? slowFrames + 1 : Math.max(0, slowFrames - 2); if (slowFrames > 150) { save.settings.quality = 'low'; persist(); applySettings(); toast(fmt(T.qualityAuto, { q: T.low })); slowFrames = 0; } }
+  }
+
+  // ---------- self test page ----------
+  function selftestScreen() {
+    show('selftest', '<div class="panel"><h2>' + esc(CONFIG.game.name) + ' - ' + esc(T.selftest) + '</h2><table id="stt"></table><p class="mt" id="stline">' + esc(T.running) + '</p></div>');
+    const tb = $('stt'), res = { done: false, pass: 0, total: SelfTest.checks.length, lines: [] }; window.__selftest = res; let i = 0;
+    const next = () => {
+      if (i >= SelfTest.checks.length) { res.done = true; res.line = 'SELFTEST ' + res.pass + '/' + res.total + ' passed'; $('stline').textContent = res.line; $('stline').className = 'mt ' + (res.pass === res.total ? 'ok' : 'bad'); return; }
+      const c = SelfTest.checks[i++]; let r; try { r = c.run(); } catch (e) { r = { pass: false, detail: 'ERROR ' + e.message }; }
+      if (r.pass) res.pass++; res.lines.push((r.pass ? 'PASS' : 'FAIL') + ' | ' + c.name + ' | ' + r.detail);
+      const tr = document.createElement('tr'); tr.innerHTML = '<td class="' + (r.pass ? 'ok' : 'bad') + '">' + (r.pass ? esc(T.pass) : esc(T.fail)) + '</td><td>' + esc(c.name) + '</td><td>' + esc(r.detail) + '</td>'; tb.appendChild(tr); tr.scrollIntoView({ block: 'nearest' });
+      setTimeout(next, 20);
+    };
+    setTimeout(next, 50);
+  }
+
+  // ---------- boot ----------
+  window.NL = { G, stats, In, Tour, runStage, stageAt, samplePodium, toast, caption, save: () => save, startMatch, version: 1 };
+  if (params.get('selftest')) { selftestScreen(); return; }
+  if (!gfxOk) { show('title', '<div class="logo"><span class="l1">' + esc(CONFIG.game.name) + '</span></div><div class="tag">' + esc(T.noGl) + '</div>'); return; }
+  if (params.get('cover')) {
+    G.cover = true; const st = mkStage('cover'); G.sim = st.sim; G.focus = -1; Scene.reset(st.sim); showHud(false);
+    const nm = CONFIG.game.name, i = nm.lastIndexOf(' '); const cvr = $('cover'); cvr.classList.remove('hide'); cvr.innerHTML = '<div class="logo"><span class="l1">' + esc(i > 0 ? nm.slice(0, i) : nm) + '</span>' + (i > 0 ? '<span class="l2">' + esc(nm.slice(i + 1)) + '</span>' : '') + '</div><div class="tag">' + esc(T.tagline) + '</div>';
+  } else {
+    titleScreen();
+    if (loaded.recovered) toast(T.saveDamaged);
+    if (params.get('tour')) Tour.start(); else if (firstRunToast) toast(firstRunToast);
+  }
+  G.last = performance.now(); requestAnimationFrame(frame);
+})();
+
+</script>
+</body>
+</html>
