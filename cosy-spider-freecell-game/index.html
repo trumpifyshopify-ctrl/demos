@@ -1,0 +1,2422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Kettlewick Patience: Spider and FreeCell on a cosy cottage table. One file, plays offline.">
+<title>Kettlewick Patience</title>
+<style>
+:root { --paper: #fbf4e4; --ink: #2a2622; --rust: #b5532c; --teal: #2f7f7a; --muted: #6d5f52; --bar: rgba(52,34,20,0.72); --barText: #fbf1de; --btn: rgba(255,248,232,0.14); --btnOn: rgba(255,248,232,0.26); }
+body[data-table="fireside"] { --bar: rgba(30,16,10,0.72); }
+body[data-table="garden"] { --bar: rgba(12,22,30,0.74); }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #2b1d12; color: var(--ink); font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+canvas#bg, canvas#amb, canvas#cv { position: fixed; left: 0; top: 0; display: block; }
+canvas#cv { touch-action: none; outline: none; }
+.hidden { display: none !important; }
+button { font: inherit; color: inherit; touch-action: manipulation; }
+/* top bar and toolbar */
+#hud { position: fixed; left: 0; right: 0; top: 0; height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 12px; padding-top: env(safe-area-inset-top); background: var(--bar); color: var(--barText); z-index: 5; box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+#hud.off { display: none; }
+#hudL { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+#hudC { display: flex; gap: 14px; font-size: 14px; white-space: nowrap; flex: 0 0 auto; }
+#hudC span { opacity: 0.8; } #hudC b { font-variant-numeric: tabular-nums; margin-left: 4px; font-weight: 700; opacity: 1; }
+#tools { display: flex; gap: 6px; flex: 0 0 auto; }
+.ib { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--btn); color: var(--barText); cursor: pointer; font-size: 14px; font-weight: 600; }
+.ib:hover { background: var(--btnOn); } .ib:disabled { opacity: 0.4; cursor: default; }
+.ib svg { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#bMenu { padding: 0 10px; }
+#dealBtn { background: transparent; border: 0; color: var(--barText); font-size: 14px; cursor: pointer; padding: 4px 6px; white-space: nowrap; min-width: 0; display: flex; align-items: center; gap: 8px; border-radius: 8px; text-align: left; }
+#dealBtn:hover { background: var(--btn); }
+#dealBtn b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+#dealBtn .sub { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#dealNo { text-decoration: underline dotted rgba(255,255,255,0.45); text-underline-offset: 4px; font-weight: 600; opacity: 0.92; }
+.badge { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 99px; white-space: nowrap; letter-spacing: 0.02em; }
+.badge.ok { background: #3f7d58; color: #f2fff5; } .badge.no { background: #8a6a3a; color: #fff6e6; }
+@media (max-width: 1100px) { .ib span { display: none; } .ib { padding: 0 10px; }
+  #dealBtn { flex-direction: column; align-items: flex-start; gap: 2px; padding: 2px 6px; line-height: 1.15; overflow: hidden; }
+  #dealBtn b { max-width: 100%; } #dealBtn .sub { gap: 6px; font-size: 12.5px; } }
+@media (max-width: 760px) {
+  #hud { height: 46px; gap: 8px; padding: 0 8px; }
+  #hudC { gap: 10px; font-size: 15px; }
+  #hudC > div { display: flex; flex-direction: column-reverse; align-items: center; line-height: 1.05; }
+  #hudC span.lab { font-size: 10.5px; opacity: 0.75; }
+  #hudC b { margin-left: 0; }
+  #dealBtn { flex-direction: column; align-items: flex-start; gap: 2px; padding: 2px 4px; font-size: 13px; line-height: 1.1; overflow: hidden; }
+  #dealBtn b { max-width: 100%; }
+  #dealBtn .sub { gap: 6px; font-size: 12px; }
+  .badge { font-size: 10.5px; padding: 1px 6px; }
+  #tools { position: fixed; left: 0; right: 0; bottom: 0; height: 60px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: var(--bar); justify-content: space-around; gap: 4px; box-shadow: 0 -2px 10px rgba(0,0,0,0.18); }
+  #tools .ib { flex-direction: column; gap: 2px; height: 48px; flex: 1 1 0; padding: 0 2px; font-size: 11px; font-weight: 600; justify-content: center; }
+  #tools .ib span { display: block; }
+  #dealBtn { font-size: 13px; }
+}
+@media (max-width: 380px) { #hudC { font-size: 13.5px; gap: 7px; } }
+@media (max-height: 460px) and (min-width: 761px) { #hud { height: 44px; } .ib { height: 34px; } }
+/* title */
+#title { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 14px 16px; z-index: 4; }
+#title .brand { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+#fan { width: min(440px, 92vw); height: min(25vh, 220px); display: block; }
+#gameName { margin: 0; font-family: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif; font-weight: 700; color: #fff8ea; font-size: clamp(30px, 5.4vw, 60px); line-height: 1.05; text-align: center; text-shadow: 0 2px 0 rgba(90,50,20,0.55), 0 6px 24px rgba(40,20,5,0.55); letter-spacing: 0.01em; }
+#tagline { margin: 4px 0 8px; color: #fff4dc; font-size: clamp(14px, 1.6vw, 18px); font-weight: 600; text-shadow: 0 1px 2px rgba(60,30,10,0.9), 0 0 12px rgba(60,30,10,0.75); text-align: center; }
+#menu { display: flex; flex-direction: column; gap: 8px; width: min(420px, 100%); }
+#menu .btn { width: 100%; }
+#menu .split { display: flex; align-items: center; gap: 6px; background: rgba(251,244,228,0.9); border-radius: 14px; padding: 5px 5px 5px 14px; box-shadow: 0 3px 12px rgba(30,15,0,0.25); }
+#menu .split span { font-weight: 700; flex: 1 1 auto; font-size: 16px; color: var(--ink); }
+#menu .split .btn { width: auto; flex: 0 0 auto; height: 38px; padding: 0 12px; font-size: 14px; box-shadow: none; background: #efe2c6; }
+#menu .pair { display: flex; gap: 8px; } #menu .pair .btn { flex: 1 1 0; }
+#menu .daily .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--rust); margin-right: 8px; box-shadow: 0 0 0 3px rgba(181,83,44,0.25); }
+#title.cover #menu { display: none; }
+#title.cover { justify-content: flex-start; padding-top: 5vh; }
+#title.cover #fan { width: min(760px, 80vw); height: 52vh; }
+#title.cover #gameName { font-size: clamp(40px, 7vw, 92px); }
+@media (orientation: landscape) and (max-height: 600px) {
+  #title { flex-direction: row; gap: 22px; }
+  #title .brand { flex: 0 1 46%; }
+  #fan { width: min(380px, 42vw); height: min(34vh, 170px); }
+  #gameName { font-size: clamp(28px, 4.2vw, 46px); }
+  #menu { width: min(380px, 48vw); gap: 7px; }
+  #menu .btn { height: 40px; }
+  #menu .split .btn { height: 32px; }
+}
+@media (max-height: 420px) { #menu .btn { height: 36px; font-size: 14px; } #menu .split { padding: 3px 3px 3px 12px; } #menu .split .btn { height: 30px; } #menu { gap: 6px; } #fan { height: 30vh; } }
+/* buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: rgba(251,244,228,0.94); color: var(--ink); font-size: 16px; font-weight: 650; cursor: pointer; box-shadow: 0 3px 12px rgba(30,15,0,0.25); transition: transform 0.08s ease, background 0.15s; }
+.btn:hover { background: #fffaf0; } .btn:active { transform: translateY(1px) scale(0.99); }
+.btn.primary { background: var(--rust); color: #fff6ea; } .btn.primary:hover { background: #c45f37; }
+.btn.big { height: 48px; font-size: 17px; }
+.btn small { font-weight: 500; opacity: 0.85; font-size: 0.85em; }
+.btn.ghost { background: transparent; box-shadow: inset 0 0 0 2px rgba(90,60,40,0.25); }
+.btn.warn { color: #9a2f1d; } .btn.warn.primary, .panel .btn.warn:not(.ghost) { background: #a8402a; color: #fff; }
+.btn.mini { height: 32px; padding: 0 12px; font-size: 14px; box-shadow: none; background: #efe2c6; }
+.btn.chip { height: 36px; font-size: 14px; box-shadow: none; background: #efe2c6; }
+.btn.chip.on { background: var(--teal); color: #fff; }
+.btn.wide { width: 100%; justify-content: space-between; box-shadow: none; background: #efe2c6; }
+.btn.wide em { font-style: normal; font-weight: 600; color: var(--teal); }
+.btn:focus-visible, .ib:focus-visible, #dealBtn:focus-visible, .bkpick:focus-visible, .day:focus-visible { outline: 3px solid #4fd1ff; outline-offset: 2px; }
+/* panels */
+#panelWrap { position: fixed; inset: 0; background: rgba(25,14,5,0.5); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 12px; }
+.panel { background: var(--paper); color: var(--ink); width: min(560px, 100%); max-height: 100%; overflow: auto; border-radius: 18px; padding: 18px 20px 16px; box-shadow: 0 18px 60px rgba(0,0,0,0.45); -webkit-overflow-scrolling: touch; user-select: text; }
+.panel.small { width: min(430px, 100%); } .panel.wide { width: min(720px, 100%); }
+.panel h2 { margin: 0 0 6px; font-family: Georgia, "Palatino Linotype", Palatino, serif; font-size: 26px; color: #3a2416; }
+.panel h3 { margin: 16px 0 6px; font-size: 16px; color: #3a2416; }
+.panel p { margin: 6px 0; line-height: 1.45; font-size: 15px; }
+.panel .muted { color: var(--muted); } .panel .small { font-size: 13px; }
+.row { display: flex; gap: 10px; align-items: center; margin-top: 12px; } .row.end { justify-content: flex-end; } .row.between { justify-content: space-between; } .row.wrap { flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.col { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.panel input[type=number] { flex: 1 1 auto; height: 44px; font-size: 18px; padding: 0 12px; border-radius: 10px; border: 2px solid #d8c7a6; background: #fffdf8; min-width: 0; }
+.panel input.err { border-color: #b5352b; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0; }
+.tiles div { background: #efe2c6; border-radius: 12px; padding: 8px; text-align: center; } .tiles span { display: block; font-size: 12px; color: var(--muted); } .tiles b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.stampRow { display: flex; align-items: center; gap: 12px; background: #f3e7cd; border-radius: 12px; padding: 8px 12px; }
+.newBack { display: flex; align-items: center; gap: 12px; margin-top: 10px; background: #f3e7cd; border-radius: 12px; padding: 8px 12px; } .newBack canvas { width: 54px; border-radius: 6px; flex: 0 0 auto; }
+.newBack p { flex: 1 1 auto; } .star { color: #a77a12; font-weight: 700; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
+.day { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 2px 4px; border: 0; border-radius: 10px; background: #f1e6cd; cursor: pointer; min-width: 0; }
+.day span { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.day.today { box-shadow: inset 0 0 0 2px var(--teal); } .day.sel { background: #e3cfa6; }
+.day .stamp { width: 100%; max-width: 40px; height: auto; }
+.stamp.pressed { animation: press 0.6s ease-out; } @keyframes press { 0% { transform: scale(1.8) rotate(-12deg); opacity: 0; } 60% { transform: scale(0.92) rotate(2deg); opacity: 1; } 100% { transform: scale(1); } }
+.album { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; margin-top: 10px; }
+.bk { display: flex; flex-direction: column; align-items: center; gap: 5px; background: #f1e6cd; border-radius: 12px; padding: 8px 6px; text-align: center; }
+.bk b { font-size: 12.5px; line-height: 1.2; min-height: 2.4em; display: flex; align-items: center; }
+.bk canvas { width: 72px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+.bk.locked canvas { filter: grayscale(1) brightness(0.55) blur(1.2px); opacity: 0.6; }
+.bk.inuse { box-shadow: inset 0 0 0 2px var(--teal); } .bk.fresh { animation: fresh 1.6s ease-out 2; } @keyframes fresh { 0% { box-shadow: 0 0 0 0 rgba(255,200,80,0.9); } 100% { box-shadow: 0 0 0 18px rgba(255,200,80,0); } }
+.tag { font-size: 12px; font-weight: 700; color: var(--teal); } .tag.lock { color: #7a6a5a; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stats section { background: #f1e6cd; border-radius: 12px; padding: 8px 12px; } .stats h3 { margin: 2px 0 6px; }
+.stats dl { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; } .stats dl div { display: flex; justify-content: space-between; gap: 6px; font-size: 13.5px; }
+.stats dt { color: var(--muted); } .stats dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { .stats { grid-template-columns: 1fr; } .tiles { grid-template-columns: repeat(2, 1fr); } .panel { padding: 14px 14px 12px; } .panel h2 { font-size: 23px; } }
+.sl { display: flex; align-items: center; gap: 12px; margin: 10px 0; } .sl span { width: 76px; font-weight: 600; } .sl input { flex: 1 1 auto; accent-color: var(--rust); height: 28px; }
+.tog { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(90,60,40,0.12); cursor: pointer; font-weight: 600; }
+.tog input { position: absolute; opacity: 0; width: 1px; height: 1px; } .tog i { width: 48px; height: 28px; border-radius: 99px; background: #d8c7a6; position: relative; transition: background 0.15s; flex: 0 0 auto; }
+.tog i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.tog input:checked + i { background: var(--teal); } .tog input:checked + i::after { transform: translateX(20px); } .tog input:focus-visible + i { outline: 3px solid #4fd1ff; outline-offset: 2px; }
+.backs { gap: 8px; } .bkpick { border: 0; padding: 3px; border-radius: 8px; background: transparent; cursor: pointer; } .bkpick canvas { width: 46px; display: block; border-radius: 5px; } .bkpick.on { box-shadow: 0 0 0 3px var(--teal); }
+/* toast and busy */
+#toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); max-width: min(560px, calc(100% - 24px)); background: rgba(34,22,12,0.92); color: #fff6e6; border-radius: 14px; padding: 10px 14px; display: flex; gap: 12px; align-items: center; font-size: 15px; z-index: 20; box-shadow: 0 6px 24px rgba(0,0,0,0.35); line-height: 1.35; }
+#toast .btn { flex: 0 0 auto; }
+@media (max-width: 760px) { #toast { bottom: 72px; font-size: 14px; } }
+#busy { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); background: rgba(34,22,12,0.9); color: #fff6e6; padding: 14px 20px; border-radius: 14px; z-index: 15; display: flex; align-items: center; gap: 12px; font-size: 15px; }
+#busy i { width: 18px; height: 18px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.25); border-top-color: #fff; animation: spin 0.8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
+/* self test */
+body.selftest { overflow: auto; background: #f6efdf; } #st { max-width: 1100px; margin: 0 auto; padding: 16px; font-size: 14px; }
+#st h1 { font-family: Georgia, serif; margin: 6px 0; } #st table { border-collapse: collapse; width: 100%; } #st td, #st th { border: 1px solid #d8c7a6; padding: 5px 8px; text-align: left; vertical-align: top; }
+#st tr.ok td:last-child { color: #2f7a46; font-weight: 700; } #st tr.bad td:last-child { color: #b5352b; font-weight: 700; } #stLine { font-weight: 700; font-size: 16px; } #st .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; columns: 3 220px; }
+</style>
+</head>
+<body data-table="kitchen">
+<canvas id="bg"></canvas><canvas id="amb"></canvas><canvas id="cv" tabindex="0" aria-label="Card table"></canvas>
+<div id="hud" class="off">
+  <div id="hudL">
+    <button class="ib" id="bMenu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <button id="dealBtn"><b id="dealName"></b><span class="sub"><span id="dealNo"></span><span id="badge" class="badge"></span></span></button>
+  </div>
+  <div id="hudC"><div><span class="lab" id="lScore"></span><b id="vScore">0</b></div><div><span class="lab" id="lMoves"></span><b id="vMoves">0</b></div><div><span class="lab" id="lTime"></span><b id="vTime">0:00</b></div></div>
+  <div id="tools">
+    <button class="ib" id="bNew"><svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></svg><span></span></button>
+    <button class="ib" id="bRestart"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg><span></span></button>
+    <button class="ib" id="bHint"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg><span></span></button>
+    <button class="ib" id="bUndo"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg><span></span></button>
+    <button class="ib" id="bRedo"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg><span></span></button>
+  </div>
+</div>
+<div id="title" class="hidden"><div class="brand"><canvas id="fan"></canvas><h1 id="gameName"></h1><p id="tagline"></p></div><nav id="menu"></nav></div>
+<div id="panelWrap" class="hidden"><div id="panel" class="panel" role="dialog" aria-modal="true"></div></div>
+<div id="toast" class="hidden" role="status"></div>
+<div id="busy" class="hidden"><i></i><span id="busyText"></span></div>
+<script>
+/* ===================== CONFIG ===================== */
+const CONFIG = {
+  name: 'Kettlewick Patience',                 // the game name, spelled exactly like this, never with "the" before it
+  saveKey: 'kettlewick-patience-v1',          // localStorage key, versioned
+  spareKey: 'kettlewick-patience-v1-unreadable', // an unreadable save is copied here before a fresh start
+  dealMax: 999999,                             // free-play deal numbers run from 1 to this
+  fcAttempts: 10,                              // FreeCell deal maker: attempts 0 to 9
+  fcBudget: 60000,                             // FreeCell solver budget per attempt, counted in positions taken from the queue
+  fcMaxLine: 200,                              // a stored FreeCell line is cut to at most this many moves
+  fcSlice: 2500,                               // positions searched per slice before the page breathes
+  fcWeights: { left: 6, cell: 2, empty: 4, bury: 2, brk: 3 }, // solver estimate: cards not home, used cells, empty columns, cards above the next card home, out-of-order pairs
+  spAttempts: 40,                              // Spider deal maker: attempts 0 to 39
+  spChance: { 1: 50, 2: 70, 4: 85 },           // percent chance that a revealed card is a helpful one, per suit count
+  spMaxMoves: 500,                             // the guide bot gives up after this many moves
+  base: 500,                                   // score starts here
+  hintCost: 20,                                // points taken off per hint
+  fcCardBonus: 10,                             // FreeCell bonus per card home
+  spRunBonus: 100,                             // Spider bonus per run that left
+  albumSize: 12,                               // card backs in the album
+  calendarDays: 28,                            // days shown in the Daily Pair calendar
+  dailySuits: 2,                               // the Daily Pair Spider game uses this many suits
+  anim: { move: 190, deal: 14, autoGap: 95, runGap: 26, flip: 160 }, // animation timings in milliseconds
+  suitColours: ['#24303a', '#b4352b', '#b4352b', '#24303a'],        // two-colour deck: spades, hearts, diamonds, clubs
+  fourColours: ['#24303a', '#b4352b', '#2a6aa6', '#2f7a46'],        // four-colour deck: spades, hearts, diamonds, clubs
+  paper: '#fbf5e8',                            // card face paper
+  paperEdge: '#d9ccb0',                        // card face edge line
+  ink: '#2a2622',                              // general dark ink
+  court: { skin: '#f0c9a4', cheek: '#e59b84', hair: ['#6b4a32', '#c9c3b8', '#3b2d25'], gold: '#c8963c', cream: '#f6ecd6' }, // court figure palette
+  quilt: { teal: '#2f7f7a', tealDark: '#1f5d5a', cream: '#f1e6cc', rust: '#b5532c', rustDark: '#8a3b1d', copper: '#c27a3e', copperLight: '#e9a865' }, // card back 1 palette
+  tables: [                                    // the three tables: name, surface colours, light, ambient animation and music
+    { id: 'kitchen', name: 'Kitchen by day', wood: ['#c99a62', '#b9864f', '#d8ae76'], runner: ['#f3ead8', '#b5532c'], light: 'rgba(255,248,225,0.32)', ui: '#3d2b1c', amb: 'steam', music: 0 },
+    { id: 'fireside', name: 'Fireside at dusk', wood: ['#5a3524', '#4a2a1c', '#6c4130'], runner: ['#2f5d54', '#c2873e'], light: 'rgba(255,160,70,0.30)', ui: '#f3e2c8', amb: 'fire', music: 1 },
+    { id: 'garden', name: 'Garden room at night', wood: ['#2c4446', '#243a3c', '#355153'], runner: ['#1e2f3c', '#d8b25a'], light: 'rgba(255,214,140,0.20)', ui: '#efe6d2', amb: 'lights', music: 2 }
+  ],
+  backs: [                                     // the album: 12 card backs from the same rainy weekend
+    'Patchwork Kettle', 'Rain on the Pane', 'Fireside Embers', 'Fairy Lights', 'Shortbread Tin', 'Oak Leaf Walk',
+    'Cable Knit', 'Hillside Cottage', 'Teatime Toile', 'Glass Garden Room', 'Forest Forage', 'Candle and Book'
+  ],
+  musicVolume: 55,                             // default music volume 0-100
+  effectsVolume: 75,                           // default effects volume 0-100
+  tourSeconds: 60,                             // ?tour=1 length
+  text: {                                      // every text the player sees
+    ranks: ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'],
+    suits: ['spades', 'hearts', 'diamonds', 'clubs'],
+    tagline: 'A cosy two-in-one card game',
+    freecell: 'FreeCell', spider: 'Spider', suit1: '1 suit', suit2: '2 suits', suit4: '4 suits',
+    daily: 'Daily Pair', album: 'Album', stats: 'Statistics', settings: 'Settings', howto: 'How to Play',
+    resume: 'Resume', menu: 'Menu', newDeal: 'New Deal', restart: 'Restart', hint: 'Hint', undo: 'Undo', redo: 'Redo', deal: 'Deal',
+    pause: 'Pause', paused: 'Paused', resumeGame: 'Resume', close: 'Close', back: 'Back', play: 'Play', yes: 'Yes', no: 'No',
+    dealLabel: 'Deal', dailyLabel: 'Daily', typeDeal: 'Type a deal number from 1 to 999999', go: 'Go',
+    proven: 'Proven', unproven: 'Unproven', provenTip: 'This deal was won through the rule engine before you saw it.',
+    unprovenTip: 'No winning line was found for this deal in the time allowed.',
+    score: 'Score', moves: 'Moves', time: 'Time',
+    making: 'Shuffling and checking the deal…',
+    hintLine: 'Hint: the next move on the winning line.', hintOff: 'You are off the winning line. Hint: a good move from here.',
+    hintFree: 'Hint: a good move from here.', backToLine: 'Back to the winning line', noMove: 'No legal move left.',
+    noDeal: 'Fill every empty column before dealing.', noStock: 'The stock is empty.',
+    leaveTitle: 'Leave this game?', leaveText: 'You have started this deal. Leaving it for another deal counts as a loss.', leave: 'Leave',
+    won: 'Well played!', wonText: 'Deal won', bestScore: 'Best score', again: 'Next deal', toCalendar: 'Calendar',
+    played: 'Played', wins: 'Won', rate: 'Win rate', streak: 'Streak', bestStreak: 'Best streak', bestTime: 'Best time', fewest: 'Fewest moves',
+    dailyTitle: 'Daily Pair', dailyText: 'Every day brings one FreeCell deal and one 2-suit Spider deal. Win one for half a stamp, both for a full stamp and a new card back.',
+    today: 'Today', wonMark: 'won', notYet: 'not yet',
+    albumText: 'Finish a Daily Pair to unlock the next card back. After all twelve, each new pair earns a gold star.',
+    locked: 'Locked', inUse: 'In use', use: 'Use', stars: 'Gold stars',
+    newBack: 'New card back:', starEarned: 'A gold star for this pair!', pairDone: 'Daily Pair complete!', halfStamp: 'Half a stamp for today.',
+    music: 'Music', effects: 'Effects', table: 'Table', cardBack: 'Card back', fourColour: 'Four-colour deck', largePrint: 'Large print',
+    reducedMotion: 'Reduced motion', on: 'On', off: 'Off', deleteProgress: 'Delete progress',
+    deleteTitle: 'Delete all progress?', deleteText: 'Statistics, stamps, the album and the unfinished game will be erased. This cannot be undone.', deleteYes: 'Delete',
+    deleted: 'Progress deleted.', recovered: 'Your saved progress could not be read. A copy was kept and a fresh start was made.',
+    muted: 'Sound off', unmuted: 'Sound on', resumed: 'Welcome back. Your game is just as you left it.',
+    selftest: 'Self test', selftestRun: 'Running the rule engine…', check: 'Check', expected: 'Expected', got: 'Got', result: 'Result', pass: 'pass', fail: 'fail',
+    tourEnd: 'Tap or press a key to play',
+    howtoBody: [
+      ['FreeCell', 'All 52 cards lie face up in 8 columns. Build the four foundations up by suit from A to K. Columns build down in alternating colours. Any card may sit in one of the 4 free cells. Any card or sequence may go into an empty column. A sequence moves in one go only when it has no more cards than (empty free cells + 1) x 2 to the power of empty columns, not counting the column it moves to. Cards that are safe go home by themselves.'],
+      ['Spider', '104 cards in 10 columns, only the last card of each face up, 50 more wait in the stock. Move a run of one suit, descending by one, onto any card one rank higher or into an empty column. A face-down card turns up when it is uncovered. K down to A of one suit leaves the table at once. Tap the stock to deal one card to every column; it is refused while a column is empty and 10 or more cards are on the table. Clear 8 runs to win.'],
+      ['Moving cards', 'Tap, click or press Enter on a card to send it, with the cards lying on it, to the first legal place. Drag a card to put it exactly where you like: legal places light up. While a hint glows, a tap on the glowing card follows the hint.'],
+      ['Keys', 'Arrows move the focus ring, Enter or Space moves, U or Ctrl+Z undo, Y redo, H hint, D deal, N new deal, Esc pause, M mute.'],
+      ['Score', '500 + bonus - moves - 20 per hint, never below 0. Bonus: 10 per card home in FreeCell, 100 per run in Spider. A deal from the stock, an undo and a redo each count as a move.'],
+      ['Proven deals', 'Before a deal is shown, the rule engine plays it to a win and keeps that winning line. Hints follow the line while you are on it. A deal it could not win carries an Unproven badge.']
+    ]
+  }
+};
+
+/* ===================== RULE ENGINE (no drawing code) ===================== */
+/* Whole numbers only. Cards are integers: suit * 13 + rank, rank 0 = A ... 12 = K.
+   Suits: 0 spades, 1 hearts, 2 diamonds, 3 clubs. Hearts and diamonds are red. */
+const ENG = (function () {
+  'use strict';
+  // ---------- integer hashing and seeded generator ----------
+  function mix(h, v) {
+    h = Math.imul(h ^ v, 0x85EBCA6B); h ^= h >>> 13;
+    h = Math.imul(h, 0xC2B2AE35); return (h ^ (h >>> 16)) | 0;
+  }
+  function seedOf(game, suits, deal, attempt) {
+    let h = 0x2545F491; h = mix(h, game); h = mix(h, suits); h = mix(h, deal); h = mix(h, attempt);
+    return h >>> 0;
+  }
+  function makeRng(seed) {
+    let a = seed | 0;
+    return {
+      next() { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return (t ^ (t >>> 14)) >>> 0; },
+      int(n) { return this.next() % n; }
+    };
+  }
+  function shuffle(arr, rng) {
+    for (let i = arr.length - 1; i > 0; i--) { const j = rng.int(i + 1); const t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
+    return arr;
+  }
+  // two independent 32-bit lanes folded into one safe integer (< 2^53)
+  function H() { return { a: 0x811C9DC5 | 0, b: 0x01000193 | 0 }; }
+  function hPush(h, v) { h.a = mix(h.a, v + 1); h.b = Math.imul(h.b ^ (v + 7), 0x5BD1E995) ^ (h.b >>> 15); }
+  function hOut(h) { return (h.a >>> 0) * 2097152 + ((h.b >>> 0) & 2097151); }
+
+  const RANK = c => c % 13;
+  const SUIT = c => (c / 13) | 0;
+  const RED = c => { const s = (c / 13) | 0; return s === 1 || s === 2; };
+
+  /* ============================ FREECELL ============================ */
+  // move: {c: card, t: target}  target 0..7 column, 8..11 that free cell, 16 = leftmost free cell, 12 = foundation
+  const CELL_ANY = 16, HOME = 12;
+  function fcFromDeck(deck) {
+    const cols = [[], [], [], [], [], [], [], []];
+    for (let i = 0; i < 52; i++) cols[i % 8].push(deck[i]);
+    return { cols, cells: [-1, -1, -1, -1], home: [0, 0, 0, 0] };
+  }
+  function fcClone(s) { return { cols: s.cols.map(c => c.slice()), cells: s.cells.slice(), home: s.home.slice() }; }
+  function fcFits(under, over) { return RANK(over) === RANK(under) - 1 && RED(over) !== RED(under); }
+  function fcSeqLen(col) {
+    const n = col.length; if (!n) return 0; let k = 1;
+    while (k < n && fcFits(col[n - k - 1], col[n - k])) k++;
+    return k;
+  }
+  function fcCapacity(s, toEmpty) {
+    let ec = 0, ecol = 0;
+    for (let k = 0; k < 4; k++) if (s.cells[k] < 0) ec++;
+    for (let i = 0; i < 8; i++) if (!s.cols[i].length) ecol++;
+    if (toEmpty) ecol--;
+    if (ecol < 0) ecol = 0;
+    return (ec + 1) * (1 << ecol);
+  }
+  function fcHomeCount(s) { return s.home[0] + s.home[1] + s.home[2] + s.home[3]; }
+  function fcSafe(s, c) {
+    const r = RANK(c) + 1; if (r <= 2) return true;
+    if (RED(c)) return s.home[0] >= r - 1 && s.home[3] >= r - 1;
+    return s.home[1] >= r - 1 && s.home[2] >= r - 1;
+  }
+  function fcAuto(s, ev) {
+    for (;;) {
+      let moved = false;
+      for (let k = 0; k < 4 && !moved; k++) {
+        const c = s.cells[k];
+        if (c >= 0 && s.home[SUIT(c)] === RANK(c) && fcSafe(s, c)) {
+          s.cells[k] = -1; s.home[SUIT(c)]++; if (ev) ev.push({ t: 'home', c, from: 8 + k }); moved = true;
+        }
+      }
+      for (let i = 0; i < 8 && !moved; i++) {
+        const col = s.cols[i]; if (!col.length) continue;
+        const c = col[col.length - 1];
+        if (s.home[SUIT(c)] === RANK(c) && fcSafe(s, c)) {
+          col.pop(); s.home[SUIT(c)]++; if (ev) ev.push({ t: 'home', c, from: i }); moved = true;
+        }
+      }
+      if (!moved) return;
+    }
+  }
+  function fcFind(s, c) {
+    for (let k = 0; k < 4; k++) if (s.cells[k] === c) return { cell: k, col: -1, idx: 0 };
+    for (let i = 0; i < 8; i++) { const j = s.cols[i].indexOf(c); if (j >= 0) return { cell: -1, col: i, idx: j }; }
+    return null;
+  }
+  function fcCheck(s, m) {
+    const src = fcFind(s, m.c); if (!src) return null;
+    let n = 1;
+    if (src.col >= 0) {
+      const col = s.cols[src.col]; n = col.length - src.idx;
+      if (n > fcSeqLen(col)) return null;
+    }
+    const t = m.t;
+    if (t === HOME) { if (n !== 1 || s.home[SUIT(m.c)] !== RANK(m.c)) return null; return { src, n }; }
+    if (t === CELL_ANY || (t >= 8 && t < 12)) {
+      if (n !== 1 || src.cell >= 0) return null;
+      const k = t === CELL_ANY ? s.cells.indexOf(-1) : t - 8;
+      if (k < 0 || s.cells[k] >= 0) return null; return { src, n, k };
+    }
+    if (t < 0 || t > 7 || src.col === t) return null;
+    const dst = s.cols[t];
+    if (dst.length) { if (!fcFits(dst[dst.length - 1], m.c) || n > fcCapacity(s, false)) return null; }
+    else if (n > fcCapacity(s, true)) return null;
+    return { src, n };
+  }
+  function fcApply(s, m, ev) {
+    const chk = fcCheck(s, m); if (!chk) return false;
+    const { src, n } = chk; let cards;
+    if (src.cell >= 0) { cards = [s.cells[src.cell]]; s.cells[src.cell] = -1; }
+    else cards = s.cols[src.col].splice(s.cols[src.col].length - n, n);
+    let to;
+    if (m.t === HOME) { s.home[SUIT(m.c)]++; to = HOME; }
+    else if (m.t === CELL_ANY || (m.t >= 8 && m.t < 12)) { s.cells[chk.k] = cards[0]; to = 8 + chk.k; }
+    else { const d = s.cols[m.t]; for (let i = 0; i < cards.length; i++) d.push(cards[i]); to = m.t; }
+    if (ev) ev.push({ t: 'move', cards, from: src.cell >= 0 ? 8 + src.cell : src.col, to });
+    fcAuto(s, ev);
+    return true;
+  }
+  function fcWon(s) { return fcHomeCount(s) === 52; }
+  // position hash: columns in order, free cells as a sorted set, foundations implied
+  function fcHash(s) {
+    const h = H();
+    for (let i = 0; i < 8; i++) { const col = s.cols[i]; for (let j = 0; j < col.length; j++) hPush(h, col[j]); hPush(h, 60); }
+    const cl = s.cells.slice().sort((x, y) => x - y);
+    for (let k = 0; k < 4; k++) hPush(h, cl[k] + 1);
+    return hOut(h);
+  }
+  // canonical hash for the solver's visited set: columns sorted too
+  function fcCanon(s) {
+    const ch = [];
+    for (let i = 0; i < 8; i++) { const col = s.cols[i]; let a = 0x9747B28C | 0; for (let j = 0; j < col.length; j++) a = mix(a, col[j] + 1); ch.push((a >>> 0) * 64 + col.length); }
+    ch.sort((x, y) => x - y);
+    const h = H();
+    for (let i = 0; i < 8; i++) { hPush(h, (ch[i] / 4294967296) | 0); hPush(h, ch[i] % 4294967296 | 0); }
+    const cl = s.cells.slice().sort((x, y) => x - y);
+    for (let k = 0; k < 4; k++) hPush(h, cl[k] + 1);
+    return hOut(h);
+  }
+  // all legal moves in a fixed order (used by the solver and the shortener)
+  function fcMoves(s) {
+    const out = [];
+    let emptyCol = -1, freeCell = -1;
+    for (let i = 0; i < 8; i++) if (!s.cols[i].length) { emptyCol = i; break; }
+    for (let k = 0; k < 4; k++) if (s.cells[k] < 0) { freeCell = k; break; }
+    const capN = fcCapacity(s, false), capE = fcCapacity(s, true);
+    // 1. to the foundation
+    for (let k = 0; k < 4; k++) { const c = s.cells[k]; if (c >= 0 && s.home[SUIT(c)] === RANK(c)) out.push({ c, t: HOME }); }
+    for (let i = 0; i < 8; i++) { const col = s.cols[i]; if (col.length) { const c = col[col.length - 1]; if (s.home[SUIT(c)] === RANK(c)) out.push({ c, t: HOME }); } }
+    // 2. free cell onto a column
+    for (let k = 0; k < 4; k++) {
+      const c = s.cells[k]; if (c < 0) continue;
+      for (let t = 0; t < 8; t++) { const d = s.cols[t]; if (d.length && fcFits(d[d.length - 1], c)) out.push({ c, t }); }
+      if (emptyCol >= 0) out.push({ c, t: emptyCol });
+    }
+    // 3. column sequence onto a non-empty column
+    for (let i = 0; i < 8; i++) {
+      const col = s.cols[i]; if (!col.length) continue;
+      const sl = fcSeqLen(col);
+      for (let t = 0; t < 8; t++) {
+        if (t === i) continue; const d = s.cols[t]; if (!d.length) continue;
+        const top = d[d.length - 1];
+        // the card that would sit on top must be one rank lower, other colour
+        const need = RANK(top) - 1; if (need < 0) continue;
+        const topR = RANK(col[col.length - 1]);
+        const n = need - topR + 1;
+        if (n < 1 || n > sl || n > capN) continue;
+        const c = col[col.length - n];
+        if (fcFits(top, c)) out.push({ c, t });
+      }
+    }
+    // 4. column sequence into the leftmost empty column (not a whole column)
+    if (emptyCol >= 0) {
+      for (let i = 0; i < 8; i++) {
+        const col = s.cols[i]; if (!col.length) continue;
+        const sl = Math.min(fcSeqLen(col), capE);
+        for (let n = sl; n >= 1; n--) { if (n === col.length) continue; out.push({ c: col[col.length - n], t: emptyCol }); }
+      }
+    }
+    // 5. column card into the leftmost free cell
+    if (freeCell >= 0) for (let i = 0; i < 8; i++) { const col = s.cols[i]; if (col.length) out.push({ c: col[col.length - 1], t: CELL_ANY }); }
+    return out;
+  }
+  function fcEstimate(s, W) {
+    let h = (52 - fcHomeCount(s)) * W.left;
+    let cellsUsed = 0; for (let k = 0; k < 4; k++) if (s.cells[k] >= 0) cellsUsed++;
+    h += cellsUsed * W.cell;
+    for (let i = 0; i < 8; i++) {
+      const col = s.cols[i]; const n = col.length;
+      if (!n) { h -= W.empty; continue; }
+      for (let j = 0; j < n; j++) {
+        const c = col[j];
+        if (s.home[SUIT(c)] === RANK(c)) h += (n - 1 - j) * W.bury;
+        if (j > 0 && !fcFits(col[j - 1], c)) h += W.brk;
+      }
+    }
+    return h;
+  }
+  // min-heap of [estimate, order, node]
+  function heapPush(hp, e, o, v) {
+    hp.push([e, o, v]); let i = hp.length - 1;
+    while (i > 0) { const p = (i - 1) >> 1; const a = hp[p], b = hp[i];
+      if (a[0] < b[0] || (a[0] === b[0] && a[1] < b[1])) break; hp[p] = b; hp[i] = a; i = p; }
+  }
+  function heapPop(hp) {
+    const top = hp[0]; const last = hp.pop();
+    if (hp.length) { hp[0] = last; let i = 0; const n = hp.length;
+      for (;;) { const l = 2 * i + 1, r = l + 1; let m = i;
+        if (l < n && (hp[l][0] < hp[m][0] || (hp[l][0] === hp[m][0] && hp[l][1] < hp[m][1]))) m = l;
+        if (r < n && (hp[r][0] < hp[m][0] || (hp[r][0] === hp[m][0] && hp[r][1] < hp[m][1]))) m = r;
+        if (m === i) break; const t = hp[m]; hp[m] = hp[i]; hp[i] = t; i = m; } }
+    return top;
+  }
+  // best-first solver, resumable in slices. Positions are counted when they are taken from the queue and expanded.
+  function fcSolver(start, budget, W) {
+    const s0 = fcClone(start);
+    const nodes = [{ s: s0, p: -1, m: null }];
+    const seen = new Set([fcCanon(s0)]);
+    const hp = []; let order = 0; heapPush(hp, fcEstimate(s0, W), order++, 0);
+    const job = { positions: 0, done: false, solved: false, line: null };
+    job.step = function (maxPos) {
+      let left = maxPos;
+      while (!job.done && left-- > 0) {
+        if (!hp.length || job.positions >= budget) { job.done = true; break; }
+        const [, , ni] = heapPop(hp); job.positions++;
+        const node = nodes[ni];
+        if (fcWon(node.s)) { job.done = true; job.solved = true; job.line = trace(ni); break; }
+        const ms = fcMoves(node.s);
+        for (let q = 0; q < ms.length; q++) {
+          const c = fcClone(node.s);
+          if (!fcApply(c, ms[q], null)) continue;
+          const key = fcCanon(c); if (seen.has(key)) continue; seen.add(key);
+          nodes.push({ s: c, p: ni, m: ms[q] });
+          if (fcWon(c)) { job.done = true; job.solved = true; job.line = trace(nodes.length - 1); break; }
+          heapPush(hp, fcEstimate(c, W), order++, nodes.length - 1);
+        }
+      }
+      return job.done;
+    };
+    function trace(i) { const out = []; while (nodes[i].p >= 0) { out.push(nodes[i].m); i = nodes[i].p; } return out.reverse(); }
+    return job;
+  }
+  // shorten a winning line: shortest path over the line's own positions where one legal move links them
+  function fcShorten(start, line) {
+    const pos = [fcClone(start)];
+    for (let i = 0; i < line.length; i++) { const c = fcClone(pos[i]); if (!fcApply(c, line[i], null)) return line; pos.push(c); }
+    const idx = new Map(); for (let i = 0; i < pos.length; i++) idx.set(fcHash(pos[i]), i);
+    const L = pos.length - 1; const best = new Array(L + 1).fill(1e9); const nxt = new Array(L + 1).fill(-1); const mv = new Array(L + 1).fill(null);
+    best[L] = 0;
+    for (let i = L - 1; i >= 0; i--) {
+      best[i] = best[i + 1] + 1; nxt[i] = i + 1; mv[i] = line[i];
+      const ms = fcMoves(pos[i]);
+      for (let q = 0; q < ms.length; q++) {
+        const c = fcClone(pos[i]); if (!fcApply(c, ms[q], null)) continue;
+        const j = idx.get(fcHash(c));
+        if (j !== undefined && j > i + 1 && best[j] + 1 < best[i]) { best[i] = best[j] + 1; nxt[i] = j; mv[i] = ms[q]; }
+      }
+    }
+    const out = []; let i = 0; while (i < L) { out.push(mv[i]); i = nxt[i]; }
+    return out;
+  }
+
+  /* ============================ SPIDER ============================ */
+  // state: cols[10] (cards, -1 = still undecided while a deal is being made), down[10] = face-down count at the bottom,
+  // stock = rows of 10 in dealing order, runs = suits of the runs that left. move: {f, n, t} or {deal: 1}
+  function spDeck(suits) { const d = []; for (let k = 0; k < 104; k++) d.push(((((k / 13) | 0) % suits)) * 13 + (k % 13)); return d; }
+  function spClone(s) { return { suits: s.suits, cols: s.cols.map(c => c.slice()), down: s.down.slice(), stock: s.stock.map(r => r.slice()), runs: s.runs.slice() }; }
+  function spFromDeck(suits, deck) {
+    const s = { suits, cols: [], down: [], stock: [], runs: [] };
+    for (let c = 0; c < 10; c++) { s.cols.push([]); }
+    for (let i = 0; i < 54; i++) s.cols[i % 10].push(deck[i]);
+    for (let c = 0; c < 10; c++) s.down.push(s.cols[c].length - 1);
+    for (let r = 0; r < 5; r++) s.stock.push(deck.slice(54 + r * 10, 64 + r * 10));
+    return s;
+  }
+  function spTable(s) { let n = 0; for (let c = 0; c < 10; c++) n += s.cols[c].length; return n; }
+  function spRunLen(s, c) { // movable same-suit descending run at the end
+    const col = s.cols[c]; const n = col.length; if (n === 0 || n <= s.down[c]) return 0;
+    let k = 1;
+    while (n - k - 1 >= s.down[c]) { const a = col[n - k - 1], b = col[n - k]; if (SUIT(a) === SUIT(b) && RANK(a) === RANK(b) + 1) k++; else break; }
+    return k;
+  }
+  function spCanDeal(s) {
+    if (!s.stock.length) return false;
+    let empty = false; for (let c = 0; c < 10; c++) if (!s.cols[c].length) empty = true;
+    return !(empty && spTable(s) >= 10);
+  }
+  function spCheck(s, m) {
+    if (m.deal) return spCanDeal(s);
+    const { f, n, t } = m;
+    if (f === t || f < 0 || f > 9 || t < 0 || t > 9 || n < 1) return false;
+    if (n > spRunLen(s, f)) return false;
+    const src = s.cols[f], dst = s.cols[t]; const base = src[src.length - n];
+    if (!dst.length) return true;
+    return RANK(dst[dst.length - 1]) === RANK(base) + 1;
+  }
+  function spTurnUp(s, c, ev, decide) {
+    const col = s.cols[c];
+    if (col.length && s.down[c] === col.length) {
+      s.down[c]--;
+      if (col[col.length - 1] < 0) col[col.length - 1] = decide(s, c, 'up', col.length - 1);
+      if (ev) ev.push({ t: 'flip', col: c, card: col[col.length - 1] });
+    }
+  }
+  function spRun(s, c, ev, decide) {
+    const col = s.cols[c]; const n = col.length;
+    if (n - s.down[c] < 13) return;
+    const su = SUIT(col[n - 1]);
+    for (let k = 0; k < 13; k++) { const x = col[n - 1 - k]; if (x < 0 || SUIT(x) !== su || RANK(x) !== k) return; }
+    const cards = col.splice(n - 13, 13); s.runs.push(su);
+    if (ev) ev.push({ t: 'run', col: c, suit: su, cards });
+    spTurnUp(s, c, ev, decide);
+  }
+  function spApply(s, m, ev, decide) {
+    if (!spCheck(s, m)) return false;
+    if (m.deal) {
+      const r = 5 - s.stock.length; const row = s.stock.shift(); const cards = [];
+      for (let c = 0; c < 10; c++) {
+        let x = row[c]; if (x < 0) x = decide(s, c, 'deal', r);
+        s.cols[c].push(x); cards.push(x);
+      }
+      if (ev) ev.push({ t: 'deal', cards, row: r });
+      for (let c = 0; c < 10; c++) spRun(s, c, ev, decide);
+      return true;
+    }
+    const cards = s.cols[m.f].splice(s.cols[m.f].length - m.n, m.n);
+    const d = s.cols[m.t]; for (let i = 0; i < cards.length; i++) d.push(cards[i]);
+    if (ev) ev.push({ t: 'move', cards, from: m.f, to: m.t });
+    spTurnUp(s, m.f, ev, decide);
+    spRun(s, m.t, ev, decide);
+    return true;
+  }
+  function spWon(s) { return s.runs.length === 8; }
+  function spHash(s) {
+    const h = H(); hPush(h, s.suits);
+    for (let c = 0; c < 10; c++) { const col = s.cols[c]; hPush(h, 200 + s.down[c]); for (let j = 0; j < col.length; j++) hPush(h, col[j] + 1); hPush(h, 300); }
+    hPush(h, s.stock.length); hPush(h, s.runs.length);
+    return hOut(h);
+  }
+  // candidate moves in the fixed priority list: join the same suit, uncover a card, fill empty columns with single cards, deal
+  function spPriority(s) {
+    const out = [];
+    const last = c => s.cols[c][s.cols[c].length - 1];
+    const runs = [];
+    for (let f = 0; f < 10; f++) {
+      const n = spRunLen(s, f); if (!n) { runs.push(null); continue; }
+      const col = s.cols[f]; const bi = col.length - n; const base = col[bi];
+      const under = bi > 0 ? col[bi - 1] : -2; // -2 nothing below
+      const turns = bi > 0 && s.down[f] === bi;           // base sits on a face-down card
+      const sits = bi > 0 && !turns && RANK(under) === RANK(base) + 1; // already sitting on a fitting card
+      runs.push({ f, n, base, bi, turns, sits, downs: s.down[f] });
+    }
+    // 1. join the same suit
+    const join = [];
+    for (const r of runs) { if (!r) continue;
+      for (let t = 0; t < 10; t++) { if (t === r.f || !s.cols[t].length) continue; const y = last(t);
+        if (SUIT(y) === SUIT(r.base) && RANK(y) === RANK(r.base) + 1) join.push({ m: { f: r.f, n: r.n, t }, k: (r.turns ? 0 : 1) * 100 - r.downs }); } }
+    join.sort((a, b) => a.k - b.k); for (const j of join) out.push(j.m);
+    // 2. uncover a card (onto a card one higher, any suit; or a run that sits on a face-down card into an empty column)
+    const unc = [];
+    for (const r of runs) { if (!r || r.sits) continue; if (r.bi === 0) continue;
+      for (let t = 0; t < 10; t++) { if (t === r.f || !s.cols[t].length) continue; const y = last(t);
+        if (RANK(y) === RANK(r.base) + 1) unc.push({ m: { f: r.f, n: r.n, t }, k: (r.turns ? 0 : 1) * 100 - r.downs }); } }
+    for (const r of runs) { if (!r || r.sits || r.bi === 0) continue;
+      for (let t = 0; t < 10; t++) if (!s.cols[t].length) { unc.push({ m: { f: r.f, n: r.n, t }, k: (r.turns ? 50 : 80) - r.downs + (RANK(r.base) === 12 ? -20 : 0) }); break; } }
+    unc.sort((a, b) => a.k - b.k); for (const u of unc) out.push(u.m);
+    // 3. fill empty columns with single cards
+    let empty = -1; for (let t = 0; t < 10; t++) if (!s.cols[t].length) { empty = t; break; }
+    if (empty >= 0) {
+      const fill = [];
+      for (let f = 0; f < 10; f++) { const col = s.cols[f]; if (col.length < 2) continue; const n = col.length;
+        const x = col[n - 1], u = col[n - 2]; const turns = s.down[f] === n - 1;
+        const held = !turns && RANK(u) === RANK(x) + 1 && SUIT(u) === SUIT(x);
+        fill.push({ m: { f, n: 1, t: empty }, k: (turns ? 0 : held ? 200 : 100) - s.down[f] }); }
+      fill.sort((a, b) => a.k - b.k); for (const u of fill) out.push(u.m);
+    }
+    // 4. deal
+    if (spCanDeal(s)) out.push({ deal: 1 });
+    return out;
+  }
+  // will this move turn up a card or remove a run (always new positions)?
+  function spProgress(s, m) {
+    if (m.deal) return true;
+    const col = s.cols[m.f]; return col.length - m.n === s.down[m.f] && s.down[m.f] > 0;
+  }
+  // the guide skips moves that repeat a position, and while the stock still holds cards it keeps
+  // columns filled (a move that empties a column is skipped unless a run leaves with it)
+  function spGuideMove(s, seen) {
+    const cand = spPriority(s);
+    for (const m of cand) {
+      if (m.deal) return m;
+      let prog = false; const c = spClone(s);
+      spApply(c, m, null, () => { prog = true; return 0; });
+      const ran = c.runs.length > s.runs.length;
+      if (s.stock.length && !ran && !c.cols[m.f].length) continue;
+      if (prog || ran || !seen.has(spHash(c))) return m;
+    }
+    return null;
+  }
+  // deal maker for one attempt: the guide plays while hidden cards are still undecided
+  function spMakeAttempt(suits, deal, attempt, chance, maxMoves) {
+    const rng = makeRng(seedOf(2, suits, deal, attempt));
+    const pool = shuffle(spDeck(suits), rng);
+    const s = { suits, cols: [], down: [], stock: [], runs: [] };
+    const lay = [], stk = [];
+    for (let c = 0; c < 10; c++) { const n = c < 4 ? 6 : 5; s.cols.push(new Array(n).fill(-1)); s.down.push(n); lay.push(new Array(n).fill(-1)); }
+    for (let r = 0; r < 5; r++) { s.stock.push(new Array(10).fill(-1)); stk.push(new Array(10).fill(-1)); }
+    function take(i) { const x = pool[i]; pool[i] = pool[pool.length - 1]; pool.pop(); return x; }
+    function findCard(code) { for (let i = 0; i < pool.length; i++) if (pool[i] === code) return i; return -1; }
+    function findRank(r) { for (let i = 0; i < pool.length; i++) if (RANK(pool[i]) === r) return i; return -1; }
+    function lastOf(st, d) { const col = st.cols[d]; if (!col.length || st.down[d] === col.length) return -1; return col[col.length - 1]; }
+    function baseOf(st, d) { const n = spRunLen(st, d); return n ? st.cols[d][st.cols[d].length - n] : -1; }
+    function helpful(st, c, kind) {
+      // first choice: it continues a same-suit run (it can go on a run's last card, or a run can come onto it);
+      // second: it fits on some column's last card (any suit)
+      const targets = [], bases = [];
+      for (let d = 0; d < 10; d++) { if (d === c) continue; const y = lastOf(st, d); if (y >= 0) targets.push(y); const b = baseOf(st, d); if (b >= 0) bases.push(b); }
+      shuffle(targets, rng); shuffle(bases, rng);
+      if (kind === 'deal') { const y = lastOf(st, c); if (y >= 0) targets.unshift(y); }
+      for (const y of targets) if (RANK(y) > 0) { const i = findCard(y - 1); if (i >= 0) return i; }
+      for (const b of bases) if (RANK(b) < 12) { const i = findCard(b + 1); if (i >= 0) return i; }
+      for (const y of targets) if (RANK(y) > 0) { const i = findRank(RANK(y) - 1); if (i >= 0) return i; }
+      return -1;
+    }
+    let laid = false; // the standard layout's face-up cards come straight from the shuffle
+    function decide(st, c, kind, where) {
+      let i = -1;
+      if (laid && rng.int(100) < chance) i = helpful(st, c, kind);
+      if (i < 0) i = rng.int(pool.length);
+      const x = take(i);
+      if (kind === 'up') lay[c][where] = x; else stk[where][c] = x;
+      return x;
+    }
+    for (let c = 0; c < 10; c++) spTurnUp(s, c, null, decide);
+    laid = true;
+    const line = []; const seen = new Set([spHash(s)]);
+    while (line.length < maxMoves && !spWon(s)) {
+      const m = spGuideMove(s, seen); if (!m) break;
+      spApply(s, m, null, decide); line.push(m); seen.add(spHash(s));
+    }
+    if (!spWon(s)) return null;
+    const deck = new Array(104).fill(-1);
+    // rebuild a deck order that spFromDeck lays out exactly like the guide met it
+    const fill = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    for (let i = 0; i < 54; i++) { const c = i % 10; deck[i] = lay[c][fill[c]++]; }
+    for (let r = 0; r < 5; r++) for (let c = 0; c < 10; c++) deck[54 + r * 10 + c] = stk[r][c];
+    return { deck, line };
+  }
+
+  /* ============================ DEALS, PROOF, GAMES ============================ */
+  function fcPlainDeck(deal, attempt) { return shuffle(Array.from({ length: 52 }, (_, i) => i), makeRng(seedOf(1, 4, deal, attempt))); }
+  function spPlainDeck(suits, deal) { return shuffle(spDeck(suits), makeRng(seedOf(2, suits, deal, 999))); }
+  function initial(kind, suits, deck) { return kind === 'fc' ? fcFromDeck(deck) : spFromDeck(suits, deck); }
+  function clone(kind, s) { return kind === 'fc' ? fcClone(s) : spClone(s); }
+  function apply(kind, s, m, ev) { return kind === 'fc' ? fcApply(s, m, ev) : spApply(s, m, ev, null); }
+  function won(kind, s) { return kind === 'fc' ? fcWon(s) : spWon(s); }
+  function posHash(kind, s) { return kind === 'fc' ? fcHash(s) : spHash(s); }
+  // replay a stored line through the rule engine; returns hashes of every position or null
+  function replay(kind, suits, deck, line) {
+    const s = initial(kind, suits, deck);
+    const hashes = [posHash(kind, s)];
+    for (const m of line) { if (!apply(kind, s, m, null)) return null; hashes.push(posHash(kind, s)); }
+    return won(kind, s) ? hashes : null;
+  }
+  // a deal maker job, resumable in slices: job.step(n) returns true when finished; job.result holds the deal
+  function makeDealJob(kind, suits, deal, C) {
+    const job = { done: false, result: null, attempt: 0, positions: 0, total: 0 };
+    let solver = null, deck = null;
+    function finish(deckUsed, line, attempt) {
+      let hashes = null; if (line) hashes = replay(kind, suits, deckUsed, line);
+      job.result = { kind, suits, deal, deck: deckUsed, line: hashes ? line : null, hashes, proven: !!hashes, attempt: hashes ? attempt : -1,
+        layoutHash: posHash(kind, initial(kind, suits, deckUsed)), positions: job.total };
+      job.done = true;
+    }
+    job.step = function (n) {
+      if (job.done) return true;
+      if (kind === 'fc') {
+        while (n > 0 && !job.done) {
+          if (!solver) {
+            if (job.attempt >= C.fcAttempts) { finish(fcPlainDeck(deal, 0), null, -1); break; }
+            deck = fcPlainDeck(deal, job.attempt); solver = fcSolver(fcFromDeck(deck), C.fcBudget, C.fcWeights);
+          }
+          const before = solver.positions; solver.step(Math.min(n, 4000)); n -= Math.max(1, solver.positions - before); job.total += solver.positions - before;
+          if (solver.done) {
+            if (solver.solved) { const line = fcShorten(fcFromDeck(deck), solver.line);
+              if (line.length <= C.fcMaxLine) { finish(deck, line, job.attempt); break; } }
+            solver = null; job.attempt++;
+          }
+        }
+      } else {
+        while (n > 0 && !job.done) {
+          if (job.attempt >= C.spAttempts) { finish(spPlainDeck(suits, deal), null, -1); break; }
+          const r = spMakeAttempt(suits, deal, job.attempt, C.spChance[suits], C.spMaxMoves);
+          n -= 1000;
+          if (r) { finish(r.deck, r.line, job.attempt); break; }
+          job.attempt++;
+        }
+      }
+      return job.done;
+    };
+    return job;
+  }
+  function makeDeal(kind, suits, deal, C) { const j = makeDealJob(kind, suits, deal, C); while (!j.step(1e9)); return j.result; }
+
+  function snap(kind, s) { return clone(kind, s); }
+  function newGame(info, extra) {
+    const st = info.state ? clone(info.kind, info.state) : initial(info.kind, info.suits, info.deck);
+    const g = { kind: info.kind, suits: info.suits, deal: info.deal, daily: !!(extra && extra.daily), info,
+      state: st, hist: [], redo: [], path: [], redoMoves: [], moves: 0, hints: 0, started: false, time: 0, over: false, result: '' };
+    g.lineMap = new Map(); if (info.hashes) for (let i = info.hashes.length - 1; i >= 0; i--) g.lineMap.set(info.hashes[i], i);
+    return g;
+  }
+  function play(g, m) {
+    if (g.over) return null;
+    const ev = []; const before = snap(g.kind, g.state);
+    if (!apply(g.kind, g.state, m, ev)) return null;
+    g.hist.push(before); g.redo = []; g.path.push(m); g.redoMoves = []; g.moves++; g.started = true;
+    if (won(g.kind, g.state)) { g.over = true; g.result = 'won'; }
+    return ev;
+  }
+  // undo and redo also work on a won game (the self test undoes a won game to the start); the page stops input after a win
+  function undo(g) { if (!g.hist.length) return false; g.redo.push(snap(g.kind, g.state)); g.state = g.hist.pop(); g.redoMoves.push(g.path.pop()); g.moves++; g.over = false; g.result = ''; return true; }
+  function redo(g) { if (!g.redo.length) return false; g.hist.push(snap(g.kind, g.state)); g.state = g.redo.pop(); g.path.push(g.redoMoves.pop()); g.moves++; if (won(g.kind, g.state)) { g.over = true; g.result = 'won'; } return true; }
+  // rebuild an unfinished game after a reload from its deal, the moves on the board and the redo list
+  function resume(info, sv) {
+    const g = newGame(info, { daily: sv.daily });
+    for (const m of sv.path || []) { if (!play(g, m)) return null; }
+    const rm = (sv.redoMoves || []).slice();
+    const tmp = []; let s = clone(g.kind, g.state);
+    for (let i = rm.length - 1; i >= 0; i--) { const c = clone(g.kind, s); if (!apply(g.kind, c, rm[i], null)) { tmp.length = 0; break; } tmp.push(c); s = c; }
+    g.redoMoves = tmp.length ? rm : []; g.redo = tmp.reverse();
+    g.moves = sv.moves | 0; g.hints = sv.hints | 0; g.time = sv.time | 0; g.started = !!sv.started || g.path.length > 0;
+    return g;
+  }
+  function restart(g) { const n = newGame(g.info, { daily: g.daily }); Object.assign(g, n); }
+  function bonus(g, C) { return g.kind === 'fc' ? fcHomeCount(g.state) * C.fcCardBonus : g.state.runs.length * C.spRunBonus; }
+  function score(g, C) { const v = C.base + bonus(g, C) - g.moves - C.hintCost * g.hints; return v < 0 ? 0 : v; }
+  function lineIndex(g) { const k = g.lineMap.get(posHash(g.kind, g.state)); return k === undefined ? -1 : k; }
+  // hint: the stored line's next move while on it, else the first move of the fixed priority list
+  function hint(g) {
+    const k = lineIndex(g);
+    if (k >= 0 && g.info.line && k < g.info.line.length) return { move: g.info.line[k], onLine: true };
+    const seen = new Set(g.hist.map(s => posHash(g.kind, s))); seen.add(posHash(g.kind, g.state));
+    const cands = (g.kind === 'fc' ? fcHintList(g.state) : spPriority(g.state)).concat(legalMoves(g)); // the priority list first, then every other legal move
+    let fallback = null;
+    for (const m of cands) {
+      const c = clone(g.kind, g.state); if (!apply(g.kind, c, m, null)) continue;
+      if (!fallback) fallback = m;
+      if (!seen.has(posHash(g.kind, c))) return { move: m, onLine: false, offLine: !!g.info.line };
+    }
+    if (fallback) return { move: fallback, onLine: false, offLine: !!g.info.line };
+    return { move: null, onLine: false, offLine: !!g.info.line };
+  }
+  // FreeCell hint priority: foundation, free cell onto a column, a sequence onto a column that frees something,
+  // a sequence or card into an empty column, a card into a free cell
+  function fcHintList(s) {
+    const all = fcMoves(s); const out = [];
+    const isSeqToCol = m => m.t >= 0 && m.t < 8 && s.cols[m.t].length;
+    const fromCell = m => s.cells.indexOf(m.c) >= 0;
+    const lateral = m => { const p = fcFind(s, m.c); if (!p || p.col < 0 || p.idx === 0) return false; return fcFits(s.cols[p.col][p.idx - 1], m.c); };
+    for (const m of all) if (m.t === HOME) out.push(m);
+    for (const m of all) if (fromCell(m) && isSeqToCol(m)) out.push(m);
+    for (const m of all) if (!fromCell(m) && isSeqToCol(m) && !lateral(m)) out.push(m);
+    for (const m of all) if (m.t >= 0 && m.t < 8 && !s.cols[m.t].length) out.push(m);
+    for (const m of all) if (m.t === CELL_ANY) out.push(m);
+    for (const m of all) if (!fromCell(m) && isSeqToCol(m) && lateral(m)) out.push(m);
+    return out;
+  }
+  // every legal move of the position (the hint falls back on it, so "no legal move" is only said when it is true)
+  function legalMoves(g) {
+    const s = g.state, out = [];
+    if (g.kind === 'fc') {
+      const tryAll = (c, single) => { if (single && fcCheck(s, { c, t: HOME })) out.push({ c, t: HOME }); for (let t = 0; t < 8; t++) if (fcCheck(s, { c, t })) out.push({ c, t }); if (single && fcCheck(s, { c, t: CELL_ANY })) out.push({ c, t: CELL_ANY }); };
+      for (let k = 0; k < 4; k++) if (s.cells[k] >= 0) tryAll(s.cells[k], true);
+      for (let i = 0; i < 8; i++) { const col = s.cols[i], sl = fcSeqLen(col); for (let n = 1; n <= sl; n++) tryAll(col[col.length - n], n === 1); }
+      return out;
+    }
+    for (let f = 0; f < 10; f++) { const n = spRunLen(s, f); for (let k = n; k >= 1; k--) for (let t = 0; t < 10; t++) if (spCheck(s, { f, n: k, t })) out.push({ f, n: k, t }); }
+    if (spCanDeal(s)) out.push({ deal: 1 });
+    return out;
+  }
+  function anyMove(g) {
+    if (g.kind === 'fc') { const ms = fcMoves(g.state); return ms.length > 0; }
+    for (let f = 0; f < 10; f++) { const n = spRunLen(g.state, f); for (let k = 1; k <= n; k++) for (let t = 0; t < 10; t++) if (spCheck(g.state, { f, n: k, t })) return true; }
+    return spCanDeal(g.state);
+  }
+  // tap-to-move: the first legal place in the prompt's order
+  function tapTarget(g, from) {
+    const s = g.state;
+    if (g.kind === 'fc') {
+      const c = from.card; const p = fcFind(s, c); if (!p) return null;
+      const whole = p.col >= 0 && p.idx === 0;
+      const tries = [{ c, t: HOME }];
+      for (let t = 0; t < 8; t++) if (s.cols[t].length) tries.push({ c, t });
+      if (!whole) for (let t = 0; t < 8; t++) if (!s.cols[t].length) { tries.push({ c, t }); break; }
+      if (p.col >= 0) tries.push({ c, t: CELL_ANY });
+      for (const m of tries) if (fcCheck(s, m)) return m;
+      return null;
+    }
+    const f = from.col, n = from.n; if (n > spRunLen(s, f)) return null;
+    const col = s.cols[f]; const base = col[col.length - n]; const whole = col.length === n;
+    for (let t = 0; t < 10; t++) { if (t === f || !s.cols[t].length) continue; const y = s.cols[t][s.cols[t].length - 1]; if (SUIT(y) === SUIT(base) && RANK(y) === RANK(base) + 1) return { f, n, t }; }
+    for (let t = 0; t < 10; t++) { if (t === f || !s.cols[t].length) continue; const y = s.cols[t][s.cols[t].length - 1]; if (RANK(y) === RANK(base) + 1) return { f, n, t }; }
+    if (!whole) for (let t = 0; t < 10; t++) if (!s.cols[t].length) return { f, n, t };
+    return null;
+  }
+
+  /* ============================ STATISTICS, ALBUM, SAVE ============================ */
+  function statKey(kind, suits) { return kind === 'fc' ? 'fc' : 'sp' + suits; }
+  function blankStat() { return { played: 0, won: 0, cur: 0, best: 0, bestTime: 0, fewest: 0, bestScore: 0 }; }
+  function recordResult(data, key, win, time, moves, sc) {
+    const st = data.stats[key] || (data.stats[key] = blankStat());
+    st.played++;
+    if (win) { st.won++; st.cur++; if (st.cur > st.best) st.best = st.cur;
+      if (!st.bestTime || time < st.bestTime) st.bestTime = time;
+      if (!st.fewest || moves < st.fewest) st.fewest = moves;
+      if (sc > st.bestScore) st.bestScore = sc; }
+    else st.cur = 0;
+    return st;
+  }
+  function winRate(st) { return st.played ? Math.floor(st.won * 100 / st.played) : 0; }
+  // a daily game won; returns {pair:true, back:n} or {pair:true, star:true} when a pair is completed for the first time
+  function dailyWin(data, date, kind, albumSize) {
+    const bit = kind === 'fc' ? 1 : 2; const before = data.daily[date] | 0; const after = before | bit;
+    data.daily[date] = after;
+    if (after === 3 && before !== 3 && !data.pairs[date]) {
+      data.pairs[date] = 1;
+      if (data.unlocked < albumSize) { data.unlocked++; return { pair: true, back: data.unlocked }; }
+      data.stars++; return { pair: true, star: true };
+    }
+    return { pair: false };
+  }
+  function blankData() { return { v: 1, stats: {}, daily: {}, pairs: {}, unlocked: 1, stars: 0, back: 1, settings: null, current: null }; }
+  function loadData(store, key, spareKey) {
+    let raw = null; try { raw = store.getItem(key); } catch (e) { raw = null; }
+    if (raw === null || raw === undefined) return { data: blankData(), recovered: false };
+    try {
+      const d = JSON.parse(raw);
+      if (!d || typeof d !== 'object' || d.v !== 1 || typeof d.stats !== 'object' || typeof d.daily !== 'object' || typeof d.unlocked !== 'number') throw new Error('bad');
+      const b = blankData(); for (const k in b) if (d[k] === undefined) d[k] = b[k];
+      return { data: d, recovered: false };
+    } catch (e) {
+      try { store.setItem(spareKey, raw); } catch (e2) { /* ignore */ }
+      return { data: blankData(), recovered: true };
+    }
+  }
+  function saveData(store, key, data) { try { store.setItem(key, JSON.stringify(data)); return true; } catch (e) { return false; } }
+
+  return { mix, seedOf, makeRng, shuffle, RANK, SUIT, RED, HOME, CELL_ANY,
+    fcFromDeck, fcClone, fcFits, fcSeqLen, fcCapacity, fcCheck, fcApply, fcAuto, fcWon, fcHash, fcMoves, fcFind, fcHomeCount, fcSolver, fcShorten, fcEstimate,
+    spDeck, spFromDeck, spClone, spCheck, spApply, spWon, spHash, spRunLen, spCanDeal, spPriority, spMakeAttempt, spTable,
+    initial, clone, apply, won, posHash, replay, makeDealJob, makeDeal, fcPlainDeck, spPlainDeck,
+    newGame, play, undo, redo, restart, resume, score, bonus, hint, lineIndex, anyMove, legalMoves, tapTarget,
+    statKey, blankStat, recordResult, winRate, dailyWin, blankData, loadData, saveData };
+})();
+
+/* ===================== SELF TEST (?selftest=1) - rule engine only, no drawing ===================== */
+function SELFTEST(C) {
+  const E = ENG, rows = [];
+  const row = (name, expect, got) => rows.push({ name, expect: String(expect), got: String(got), pass: String(expect) === String(got) });
+  const cd = (r, s) => s * 13 + r - 1; // rank 1..13, suit 0..3
+  const S = 0, Hh = 1, D = 2, Cl = 3;
+  // 1. the same deal twice gives the same layout hash
+  const a1 = E.makeDeal('fc', 4, 7, C), a2 = E.makeDeal('fc', 4, 7, C);
+  row('FreeCell deal 7 made twice: same layout hash', a1.layoutHash, a2.layoutHash);
+  const b1 = E.makeDeal('sp', 2, 7, C), b2 = E.makeDeal('sp', 2, 7, C);
+  row('Spider 2-suit deal 7 made twice: same layout hash', b1.layoutHash, b2.layoutHash);
+  // 2. proven deals, each stored line replayed again to a win
+  let fcOk = 0, fcLines = 0; const fcScores = [];
+  for (let d = 1; d <= 20; d++) { const r = E.makeDeal('fc', 4, d, C);
+    if (r.proven && E.replay('fc', 4, r.deck, r.line)) fcOk++;
+    if (r.line && r.line.length <= C.fcMaxLine) fcLines++; fcScores.push(r); }
+  row('FreeCell deals 1-20 Proven and replayed to a win', 20, fcOk);
+  row('FreeCell deals 1-20 stored lines of at most ' + C.fcMaxLine + ' moves', 20, fcLines);
+  const spDeals = {};
+  for (const su of [1, 2, 4]) { let ok = 0; spDeals[su] = [];
+    for (let d = 1; d <= 30; d++) { const r = E.makeDeal('sp', su, d, C); if (r.proven && E.replay('sp', su, r.deck, r.line)) ok++; spDeals[su].push(r); }
+    row('Spider ' + su + '-suit deals 1-30 Proven and replayed to a win', 30, ok); }
+  // 3. sequence size: 2 empty cells and 1 empty column
+  const fs = { cols: [[cd(13, D), cd(9, S), cd(8, Hh), cd(7, Cl), cd(6, D), cd(5, S), cd(4, Hh), cd(3, Cl)], [cd(9, Cl)], [cd(10, Hh)], [], [cd(13, S)], [cd(13, Hh)], [cd(13, Cl)], [cd(12, S)]],
+    cells: [cd(11, S), cd(11, Hh), -1, -1], home: [0, 0, 0, 0] };
+  const ok = m => E.fcCheck(fs, m) ? 1 : 0;
+  row('2 free cells + 1 empty column: 6 cards onto a column / 7 refused', '1/0', ok({ c: cd(8, Hh), t: 1 }) + '/' + ok({ c: cd(9, S), t: 2 }));
+  row('2 free cells + 1 empty column: 3 cards into it / 4 refused', '1/0', ok({ c: cd(5, S), t: 3 }) + '/' + ok({ c: cd(6, D), t: 3 }));
+  // 4. auto-move of a red 3
+  const am = h => { const s = { cols: [[cd(13, S), cd(3, Hh)], [cd(13, Cl)], [], [], [], [], [], []], cells: [-1, -1, -1, -1], home: h.slice() }; E.fcAuto(s, null); return s.home[1]; };
+  row('Red 3 goes home when both black foundations hold 2 (hearts top)', 3, am([2, 2, 0, 2]));
+  row('Red 3 stays when one black foundation holds 1 (hearts top)', 2, am([2, 2, 0, 1]));
+  // 5. a mixed-suit Spider run is refused (a same-suit run is accepted as control)
+  const sp = (cols, down, stock) => ({ suits: 4, cols, down, stock: stock || [], runs: [] });
+  const s5 = sp([[cd(5, S), cd(4, Hh)], [cd(6, Cl)], [cd(5, D), cd(4, D)], [], [], [], [], [], [], []], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  row('Spider: mixed-suit run refused / same-suit run accepted', '0/1', (E.spCheck(s5, { f: 0, n: 2, t: 1 }) ? 1 : 0) + '/' + (E.spCheck(s5, { f: 2, n: 2, t: 1 }) ? 1 : 0));
+  // 6. the stock is refused with an empty column and 10 cards on the table
+  const ten = [[], [cd(1, S), cd(2, S)], [cd(3, S)], [cd(4, S)], [cd(5, S)], [cd(6, S)], [cd(7, S)], [cd(8, S)], [cd(9, S)], [cd(10, S)]];
+  const s6 = sp(ten, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [new Array(10).fill(cd(1, Hh))]);
+  const nine = ten.map(c => c.slice()); nine[1].pop();
+  const s6b = sp(nine, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [new Array(10).fill(cd(1, Hh))]);
+  row('Spider stock with an empty column: refused at 10 cards / allowed at 9', '0/1', (E.spCanDeal(s6) ? 1 : 0) + '/' + (E.spCanDeal(s6b) ? 1 : 0));
+  // 7. K to A leaves and the card below turns up, all in one undo step
+  const run = []; for (let r = 13; r >= 2; r--) run.push(cd(r, S));
+  const s7 = sp([[cd(9, D)].concat(run), [cd(7, Cl), cd(1, S)], [cd(13, Hh)], [cd(13, D)], [cd(13, Cl)], [cd(12, Hh)], [cd(12, D)], [cd(12, Cl)], [cd(11, Hh)], [cd(11, D)]], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  const g7 = E.newGame({ kind: 'sp', suits: 4, deal: 0, state: s7 });
+  const h7 = E.posHash('sp', g7.state);
+  E.play(g7, { f: 1, n: 1, t: 0 });
+  const after = g7.state.runs.length + '/' + g7.state.down[0] + '/' + g7.state.cols[0].length;
+  E.undo(g7);
+  row('K-A run leaves and turns up the card below (runs/face-down/cards)', '1/0/1', after);
+  row('One undo step restores that position (hash)', h7, E.posHash('sp', g7.state));
+  // 8. undoing a won game to the start restores the deal's hash
+  const fc1 = fcScores[0]; const g8 = E.newGame(fc1);
+  for (const m of fc1.line) E.play(g8, m);
+  const wonFc = g8.over ? 1 : 0; let steps = 0; while (E.undo(g8)) steps++;
+  row('FreeCell deal 1: line wins, then undo to the start restores the hash', '1/' + fc1.layoutHash, wonFc + '/' + E.posHash('fc', g8.state));
+  const sp1 = spDeals[2][0]; const g8s = E.newGame(sp1);
+  for (const m of sp1.line) E.play(g8s, m);
+  const wonSp = g8s.over ? 1 : 0; while (E.undo(g8s));
+  row('Spider 2-suit deal 1: line wins, then undo to the start restores the hash', '1/' + sp1.layoutHash, wonSp + '/' + E.posHash('sp', g8s.state));
+  // 9. scores of replayed lines
+  let fcSc = 0; for (const r of fcScores) { const g = E.newGame(r); for (const m of r.line) E.play(g, m); if (E.score(g, C) === C.base + 52 * C.fcCardBonus - r.line.length) fcSc++; }
+  row('FreeCell deals 1-20: a line of L moves scores 1020 - L', 20, fcSc);
+  let spSc = 0, spN = 0; for (const su of [1, 2, 4]) for (const r of spDeals[su]) { spN++; const g = E.newGame(r); for (const m of r.line) E.play(g, m); if (E.score(g, C) === C.base + 8 * C.spRunBonus - r.line.length) spSc++; }
+  row('Spider deals 1-30 x 3 suit counts: a line of L moves scores 1300 - L', spN, spSc);
+  const g9 = E.newGame(fc1); for (const m of fc1.line) E.play(g9, m); const s9a = E.score(g9, C); g9.hints = 1;
+  row('One hint takes off 20 (FreeCell deal 1)', (1020 - fc1.line.length) + '/' + (1000 - fc1.line.length), s9a + '/' + E.score(g9, C));
+  // 10. statistics
+  const d10 = E.blankData(); E.recordResult(d10, 'fc', true, 100, 80, 900); E.recordResult(d10, 'fc', false, 0, 0, 0); E.recordResult(d10, 'fc', true, 90, 70, 950);
+  const st = d10.stats.fc;
+  row('Win, loss, win: played/won/rate/streak', '3/2/66/1', st.played + '/' + st.won + '/' + E.winRate(st) + '/' + st.cur);
+  // 11. album
+  const d11 = E.blankData(); const got = [];
+  for (const day of [20261101, 20261102, 20261103]) { E.dailyWin(d11, day, 'fc', C.albumSize); const r = E.dailyWin(d11, day, 'sp', C.albumSize); if (r.back) got.push(r.back); }
+  E.dailyWin(d11, 20261101, 'fc', C.albumSize); E.dailyWin(d11, 20261101, 'sp', C.albumSize);
+  row('Three finished pairs unlock backs (then a repeated date)', '2,3,4/4/0', got.join(',') + '/' + d11.unlocked + '/' + d11.stars);
+  // 12. an unreadable save is recovered
+  const mem = { m: {}, getItem(k) { return k in this.m ? this.m[k] : null; }, setItem(k, v) { this.m[k] = String(v); } };
+  mem.setItem('kp-test', '{"v":1,"stats":{broken');
+  const L = E.loadData(mem, 'kp-test', 'kp-test-spare');
+  row('Unreadable save: recovered / spare copy kept / fresh album', '1/1/1', (L.recovered ? 1 : 0) + '/' + (mem.getItem('kp-test-spare') === '{"v":1,"stats":{broken' ? 1 : 0) + '/' + L.data.unlocked);
+  // summary checksum (identical in every engine)
+  let ck = 5381; const txt = rows.map(r => r.name + '=' + r.got).join('|');
+  for (let i = 0; i < txt.length; i++) ck = (Math.imul(ck, 33) + txt.charCodeAt(i)) | 0;
+  const passed = rows.filter(r => r.pass).length;
+  const fcInfo = fcScores.map(r => ({ deal: r.deal, attempt: r.attempt, len: r.line ? r.line.length : 0, positions: r.positions }));
+  const spInfo = {}; for (const su of [1, 2, 4]) spInfo[su] = spDeals[su].map(r => ({ deal: r.deal, attempt: r.attempt, len: r.line ? r.line.length : 0 }));
+  return { rows, passed, total: rows.length, checksum: ck >>> 0, fcInfo, spInfo };
+}
+
+/* ===================== ART: everything painted in code ===================== */
+const ART = (function () {
+  'use strict';
+  const C = CONFIG;
+  const FONT = '-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+  const SERIF = 'Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, "Times New Roman", serif';
+  function rr(ctx, x, y, w, h, r) {
+    r = Math.max(0, Math.min(r, w / 2, h / 2)); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  // seeded integer generator for art details (same picture on every device)
+  function artRng(seed) { const r = ENG.makeRng(seed); return { n: (a, b) => a + (r.next() % 100000) / 100000 * (b - a), i: k => r.int(k) }; }
+
+  /* ---------- suit pips drawn as shapes ---------- */
+  function pipPath(ctx, suit, x, y, s) {
+    ctx.beginPath();
+    if (suit === 1) { // heart
+      ctx.moveTo(x, y + s * 0.46);
+      ctx.bezierCurveTo(x - s * 0.18, y + s * 0.30, x - s * 0.53, y + s * 0.06, x - s * 0.50, y - s * 0.19);
+      ctx.bezierCurveTo(x - s * 0.47, y - s * 0.46, x - s * 0.12, y - s * 0.53, x, y - s * 0.26);
+      ctx.bezierCurveTo(x + s * 0.12, y - s * 0.53, x + s * 0.47, y - s * 0.46, x + s * 0.50, y - s * 0.19);
+      ctx.bezierCurveTo(x + s * 0.53, y + s * 0.06, x + s * 0.18, y + s * 0.30, x, y + s * 0.46);
+    } else if (suit === 2) { // diamond
+      ctx.moveTo(x, y - s * 0.5);
+      ctx.quadraticCurveTo(x + s * 0.14, y - s * 0.16, x + s * 0.39, y);
+      ctx.quadraticCurveTo(x + s * 0.14, y + s * 0.16, x, y + s * 0.5);
+      ctx.quadraticCurveTo(x - s * 0.14, y + s * 0.16, x - s * 0.39, y);
+      ctx.quadraticCurveTo(x - s * 0.14, y - s * 0.16, x, y - s * 0.5);
+    } else if (suit === 0) { // spade
+      ctx.moveTo(x, y - s * 0.5);
+      ctx.bezierCurveTo(x + s * 0.16, y - s * 0.30, x + s * 0.53, y - s * 0.10, x + s * 0.50, y + s * 0.14);
+      ctx.bezierCurveTo(x + s * 0.47, y + s * 0.38, x + s * 0.17, y + s * 0.40, x + s * 0.05, y + s * 0.24);
+      ctx.quadraticCurveTo(x + s * 0.07, y + s * 0.42, x + s * 0.20, y + s * 0.50);
+      ctx.lineTo(x - s * 0.20, y + s * 0.50);
+      ctx.quadraticCurveTo(x - s * 0.07, y + s * 0.42, x - s * 0.05, y + s * 0.24);
+      ctx.bezierCurveTo(x - s * 0.17, y + s * 0.40, x - s * 0.47, y + s * 0.38, x - s * 0.50, y + s * 0.14);
+      ctx.bezierCurveTo(x - s * 0.53, y - s * 0.10, x - s * 0.16, y - s * 0.30, x, y - s * 0.5);
+    } else { // club
+      const r = s * 0.215;
+      ctx.moveTo(x + r, y - s * 0.25); ctx.arc(x, y - s * 0.25, r, 0, Math.PI * 2);
+      ctx.moveTo(x - s * 0.24 + r, y + s * 0.06); ctx.arc(x - s * 0.24, y + s * 0.06, r, 0, Math.PI * 2);
+      ctx.moveTo(x + s * 0.24 + r, y + s * 0.06); ctx.arc(x + s * 0.24, y + s * 0.06, r, 0, Math.PI * 2);
+      ctx.moveTo(x + s * 0.12, y); ctx.arc(x, y, s * 0.12, 0, Math.PI * 2);
+      ctx.moveTo(x + s * 0.04, y + s * 0.08);
+      ctx.quadraticCurveTo(x + s * 0.07, y + s * 0.40, x + s * 0.20, y + s * 0.50);
+      ctx.lineTo(x - s * 0.20, y + s * 0.50);
+      ctx.quadraticCurveTo(x - s * 0.07, y + s * 0.40, x - s * 0.04, y + s * 0.08);
+    }
+    ctx.closePath();
+  }
+  function pip(ctx, suit, x, y, s, flip) {
+    if (flip) { ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI); pipPath(ctx, suit, 0, 0, s); ctx.fill(); ctx.restore(); }
+    else { pipPath(ctx, suit, x, y, s); ctx.fill(); }
+  }
+  function suitColour(suit, four) { return (four ? C.fourColours : C.suitColours)[suit]; }
+
+  /* ---------- court figures (J, Q, K): cottage-window portraits, painted in code ---------- */
+  function court(ctx, rank, suit, x, y, w, h, col) {
+    const cx = x + w / 2;
+    ctx.save();
+    // arched cottage window frame
+    ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x, y + w / 2); ctx.arc(cx, y + w / 2, w / 2, Math.PI, 0); ctx.lineTo(x + w, y + h); ctx.closePath();
+    const bg = ctx.createLinearGradient(0, y, 0, y + h); bg.addColorStop(0, '#f7e9c9'); bg.addColorStop(1, '#ead3a8');
+    ctx.fillStyle = bg; ctx.fill(); ctx.save(); ctx.clip();
+    // rain-streaked window behind the figure
+    ctx.strokeStyle = 'rgba(120,150,170,0.25)'; ctx.lineWidth = Math.max(1, w * 0.012);
+    for (let i = 0; i < 7; i++) { const lx = x + w * (0.08 + i * 0.14); ctx.beginPath(); ctx.moveTo(lx, y + h * 0.05); ctx.lineTo(lx - w * 0.04, y + h * 0.4); ctx.stroke(); }
+    const s = w; // scale
+    const hy = y + h * 0.40, hr = s * 0.17;
+    // body / garment in suit colour with knitted stripes
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.moveTo(x - s * 0.02, y + h); ctx.quadraticCurveTo(x + s * 0.04, hy + hr * 1.25, cx, hy + hr * 1.1);
+    ctx.quadraticCurveTo(x + w - s * 0.04, hy + hr * 1.25, x + w + s * 0.02, y + h); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,245,225,0.55)'; ctx.lineWidth = Math.max(1, s * 0.025);
+    for (let i = 1; i <= 3; i++) { const yy = hy + hr * 1.3 + i * h * 0.08; ctx.beginPath(); ctx.moveTo(x, yy); ctx.quadraticCurveTo(cx, yy - s * 0.05, x + w, yy); ctx.stroke(); }
+    // collar / scarf
+    ctx.fillStyle = C.court.cream;
+    ctx.beginPath(); ctx.ellipse(cx, hy + hr * 1.18, hr * 1.05, hr * 0.38, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = col; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.ellipse(cx, hy + hr * 1.18, hr * 1.05, hr * 0.12, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    // brooch pip
+    ctx.fillStyle = C.court.gold; ctx.beginPath(); ctx.arc(cx, hy + hr * 1.85, s * 0.065, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = C.court.cream; pip(ctx, suit, cx, hy + hr * 1.85, s * 0.08, false);
+    // head
+    ctx.fillStyle = C.court.skin; ctx.beginPath(); ctx.arc(cx, hy, hr, 0, Math.PI * 2); ctx.fill();
+    // hair
+    const hair = C.court.hair[rank === 12 ? 1 : rank === 11 ? 0 : 2];
+    ctx.fillStyle = hair;
+    if (rank === 11) { // queen: hair with a round bun
+      ctx.beginPath(); ctx.arc(cx, hy - hr * 0.15, hr * 1.05, Math.PI * 1.02, Math.PI * 1.98); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx - hr * 0.95, hy + hr * 0.2, hr * 0.32, 0, Math.PI * 2); ctx.arc(cx + hr * 0.95, hy + hr * 0.2, hr * 0.32, 0, Math.PI * 2); ctx.fill();
+    } else if (rank === 12) { // king: silver hair and a soft beard
+      ctx.beginPath(); ctx.arc(cx, hy - hr * 0.2, hr * 1.0, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
+      ctx.fillStyle = '#e9e4da'; ctx.beginPath(); ctx.moveTo(cx - hr * 0.85, hy + hr * 0.15);
+      ctx.quadraticCurveTo(cx - hr * 0.7, hy + hr * 1.35, cx, hy + hr * 1.45); ctx.quadraticCurveTo(cx + hr * 0.7, hy + hr * 1.35, cx + hr * 0.85, hy + hr * 0.15);
+      ctx.quadraticCurveTo(cx, hy + hr * 0.55, cx - hr * 0.85, hy + hr * 0.15); ctx.fill();
+    } else { // jack: short hair under a knitted bobble hat
+      ctx.beginPath(); ctx.arc(cx, hy - hr * 0.1, hr * 1.02, Math.PI * 1.0, Math.PI * 2.0); ctx.fill();
+    }
+    // face
+    ctx.fillStyle = C.ink;
+    ctx.beginPath(); ctx.arc(cx - hr * 0.36, hy + hr * 0.05, Math.max(0.8, hr * 0.09), 0, Math.PI * 2); ctx.arc(cx + hr * 0.36, hy + hr * 0.05, Math.max(0.8, hr * 0.09), 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = C.court.cheek; ctx.globalAlpha = 0.55;
+    ctx.beginPath(); ctx.arc(cx - hr * 0.55, hy + hr * 0.38, hr * 0.16, 0, Math.PI * 2); ctx.arc(cx + hr * 0.55, hy + hr * 0.38, hr * 0.16, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.ink; ctx.lineWidth = Math.max(0.8, hr * 0.08);
+    if (rank !== 12) { ctx.beginPath(); ctx.arc(cx, hy + hr * 0.30, hr * 0.26, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.arc(cx, hy + hr * 0.62, hr * 0.18, 0.1 * Math.PI, 0.9 * Math.PI); ctx.stroke(); }
+    // headwear
+    if (rank === 12) { // crown of oak leaves
+      ctx.fillStyle = C.court.gold;
+      for (let i = -1; i <= 1; i++) { ctx.save(); ctx.translate(cx + i * hr * 0.62, hy - hr * 0.95); ctx.rotate(i * 0.45);
+        ctx.beginPath(); ctx.ellipse(0, -hr * 0.18, hr * 0.2, hr * 0.42, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+      rr(ctx, cx - hr * 0.95, hy - hr * 0.98, hr * 1.9, hr * 0.32, hr * 0.1); ctx.fill();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(cx, hy - hr * 0.82, hr * 0.1, 0, Math.PI * 2); ctx.fill();
+    } else if (rank === 11) { // circlet with a tiny copper kettle
+      ctx.strokeStyle = C.court.gold; ctx.lineWidth = Math.max(1, hr * 0.16);
+      ctx.beginPath(); ctx.arc(cx, hy + hr * 0.2, hr * 1.02, Math.PI * 1.18, Math.PI * 1.82); ctx.stroke();
+      ctx.fillStyle = C.quilt.copper; ctx.beginPath(); ctx.ellipse(cx, hy - hr * 1.02, hr * 0.26, hr * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(cx + hr * 0.18, hy - hr * 1.1, hr * 0.22, hr * 0.07);
+    } else { // knitted bobble hat in suit colour
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(cx, hy - hr * 0.2, hr * 1.04, Math.PI, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = C.court.cream; rr(ctx, cx - hr * 1.1, hy - hr * 0.34, hr * 2.2, hr * 0.34, hr * 0.12); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, hy - hr * 1.3, hr * 0.28, 0, Math.PI * 2); ctx.fill();
+    }
+    // held item
+    const ix = x + w * 0.80, iy = y + h * 0.80, is = s * 0.16;
+    if (rank === 12) { // a mug with steam
+      ctx.fillStyle = C.court.cream; rr(ctx, ix - is * 0.6, iy - is * 0.5, is * 1.1, is * 1.1, is * 0.15); ctx.fill();
+      ctx.strokeStyle = C.court.cream; ctx.lineWidth = Math.max(1, is * 0.2); ctx.beginPath(); ctx.arc(ix + is * 0.55, iy + is * 0.05, is * 0.28, -1.3, 1.3); ctx.stroke();
+      ctx.fillStyle = col; ctx.fillRect(ix - is * 0.6, iy - is * 0.15, is * 1.1, is * 0.2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = Math.max(0.8, is * 0.1); ctx.beginPath(); ctx.moveTo(ix - is * 0.1, iy - is * 0.6);
+      ctx.bezierCurveTo(ix - is * 0.4, iy - is * 0.9, ix + is * 0.2, iy - is * 1.0, ix - is * 0.1, iy - is * 1.35); ctx.stroke();
+    } else if (rank === 11) { // a round teapot
+      ctx.fillStyle = C.quilt.teal; ctx.beginPath(); ctx.ellipse(ix, iy, is * 0.62, is * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(ix - is * 0.5, iy); ctx.quadraticCurveTo(ix - is * 1.0, iy - is * 0.1, ix - is * 1.05, iy - is * 0.55); ctx.lineTo(ix - is * 0.85, iy - is * 0.5); ctx.quadraticCurveTo(ix - is * 0.8, iy - is * 0.1, ix - is * 0.4, iy + is * 0.15); ctx.fill();
+      ctx.fillStyle = C.court.gold; ctx.beginPath(); ctx.arc(ix, iy - is * 0.55, is * 0.13, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = C.court.cream; ctx.beginPath(); ctx.arc(ix, iy, is * 0.18, 0, Math.PI * 2); ctx.fill();
+    } else { // a lantern with a warm light
+      ctx.fillStyle = 'rgba(255,200,90,0.45)'; ctx.beginPath(); ctx.arc(ix, iy, is * 0.95, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffd27a'; rr(ctx, ix - is * 0.35, iy - is * 0.45, is * 0.7, is * 0.9, is * 0.12); ctx.fill();
+      ctx.strokeStyle = '#5a4126'; ctx.lineWidth = Math.max(1, is * 0.12); rr(ctx, ix - is * 0.35, iy - is * 0.45, is * 0.7, is * 0.9, is * 0.12); ctx.stroke();
+      ctx.beginPath(); ctx.arc(ix, iy - is * 0.55, is * 0.2, Math.PI, 0); ctx.stroke();
+    }
+    ctx.restore();
+    // frame line
+    ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x, y + w / 2); ctx.arc(cx, y + w / 2, w / 2, Math.PI, 0); ctx.lineTo(x + w, y + h); ctx.closePath();
+    ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, w * 0.022); ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ---------- card faces ---------- */
+  const PIPS = {
+    2: [[0, -1], [0, 1]], 3: [[0, -1], [0, 0], [0, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]],
+    5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]],
+    7: [[-1, -1], [1, -1], [0, -0.5], [-1, 0], [1, 0], [-1, 1], [1, 1]],
+    8: [[-1, -1], [1, -1], [0, -0.5], [-1, 0], [1, 0], [0, 0.5], [-1, 1], [1, 1]],
+    9: [[-1, -1], [1, -1], [-1, -1 / 3], [1, -1 / 3], [0, 0], [-1, 1 / 3], [1, 1 / 3], [-1, 1], [1, 1]],
+    10: [[-1, -1], [1, -1], [0, -2 / 3], [-1, -1 / 3], [1, -1 / 3], [-1, 1 / 3], [1, 1 / 3], [0, 2 / 3], [-1, 1], [1, 1]]
+  };
+  // the paper texture is the same for every card: a seeded speckle
+  function paper(ctx, w, h, r) {
+    rr(ctx, 0, 0, w, h, r); ctx.fillStyle = C.paper; ctx.fill();
+    const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(200,180,140,0.12)');
+    ctx.fillStyle = g; ctx.fill();
+  }
+  function face(code, w, h, opt) {
+    const cv = document.createElement('canvas'); const d = opt.dpr;
+    cv.width = Math.ceil(w * d); cv.height = Math.ceil(h * d);
+    const ctx = cv.getContext('2d'); ctx.scale(d, d);
+    const rank = code % 13, suit = (code / 13) | 0, col = suitColour(suit, opt.four), r = Math.max(3, w * 0.08);
+    paper(ctx, w, h, r);
+    rr(ctx, 0.5, 0.5, w - 1, h - 1, r); ctx.strokeStyle = C.paperEdge; ctx.lineWidth = 1; ctx.stroke();
+    ctx.save(); rr(ctx, 0, 0, w, h, r); ctx.clip();
+    const big = opt.large;
+    const fs = Math.round(w * (big ? 0.47 : 0.37));
+    const label = C.text.ranks[rank];
+    ctx.fillStyle = col; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    ctx.font = '700 ' + fs + 'px ' + FONT;
+    const ten = label.length > 1;
+    if (ten) { ctx.save(); ctx.translate(w * 0.05, 0); ctx.scale(0.80, 1); ctx.fillText(label, 0, fs * 0.93 + h * 0.012); ctx.restore(); }
+    else ctx.fillText(label, w * 0.07, fs * 0.93 + h * 0.012);
+    const ps = Math.round(w * (big ? 0.30 : 0.25));
+    pip(ctx, suit, w - ps * 0.5 - w * 0.07, ps * 0.55 + h * 0.025, ps, false);
+    // small turned index at the bottom right
+    if (!big) { ctx.save(); ctx.translate(w, h); ctx.rotate(Math.PI); ctx.font = '700 ' + Math.round(fs * 0.55) + 'px ' + FONT;
+      if (ten) { ctx.save(); ctx.translate(w * 0.06, 0); ctx.scale(0.8, 1); ctx.fillText(label, 0, fs * 0.55 * 0.93 + h * 0.02); ctx.restore(); }
+      else ctx.fillText(label, w * 0.07, fs * 0.55 * 0.93 + h * 0.02);
+      ctx.restore(); }
+    // centre
+    const top = h * (big ? 0.40 : 0.33), bot = h * 0.86;
+    if (rank >= 10) {
+      const fw = w * 0.64, fh = bot - top + h * 0.06;
+      court(ctx, rank, suit, (w - fw) / 2, top - h * 0.01, fw, fh, col);
+    } else if (rank === 0 || big) {
+      const s = rank === 0 && !big ? w * 0.52 : w * 0.46;
+      if (rank === 0 && !big) { // the ace: a big pip in a ring of stitches
+        ctx.strokeStyle = col; ctx.globalAlpha = 0.35; ctx.setLineDash([Math.max(1.5, w * 0.03), Math.max(1.5, w * 0.03)]); ctx.lineWidth = Math.max(1, w * 0.015);
+        ctx.beginPath(); ctx.arc(w / 2, (top + bot) / 2, s * 0.72, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = col; pip(ctx, suit, w / 2, (top + bot) / 2, s, false);
+    } else {
+      const n = rank + 1, ps2 = w * (n >= 9 ? 0.19 : 0.21);
+      const xs = w * 0.24, cy = (top + bot) / 2, ys = (bot - top) / 2 - ps2 * 0.5;
+      ctx.fillStyle = col;
+      for (const [px, py] of PIPS[n]) pip(ctx, suit, w / 2 + px * xs, cy + py * ys, ps2, py > 0.01);
+    }
+    ctx.restore();
+    return cv;
+  }
+
+  /* ---------- the 12 card backs ---------- */
+  function kettle(ctx, x, y, s) { // a small copper kettle centred at x, y; s = width
+    const Q = C.quilt;
+    ctx.save(); ctx.translate(x, y);
+    ctx.fillStyle = Q.copper;
+    ctx.beginPath(); ctx.moveTo(-s * 0.42, s * 0.32); ctx.quadraticCurveTo(-s * 0.5, -s * 0.12, -s * 0.2, -s * 0.22);
+    ctx.lineTo(s * 0.2, -s * 0.22); ctx.quadraticCurveTo(s * 0.5, -s * 0.12, s * 0.42, s * 0.32); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(s * 0.33, s * 0.06); ctx.quadraticCurveTo(s * 0.62, s * 0.02, s * 0.72, -s * 0.24); ctx.lineTo(s * 0.62, -s * 0.24); ctx.quadraticCurveTo(s * 0.52, -s * 0.06, s * 0.36, s * 0.18); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = Q.rustDark; ctx.lineWidth = Math.max(1, s * 0.07); ctx.beginPath(); ctx.arc(0, -s * 0.24, s * 0.3, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+    ctx.fillStyle = Q.copperLight; ctx.beginPath(); ctx.ellipse(-s * 0.16, s * 0.02, s * 0.07, s * 0.16, 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = Q.rustDark; rr(ctx, -s * 0.46, s * 0.30, s * 0.92, s * 0.08, s * 0.03); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -s * 0.26, s * 0.06, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = Math.max(1, s * 0.05);
+    ctx.beginPath(); ctx.moveTo(s * 0.72, -s * 0.3); ctx.bezierCurveTo(s * 0.62, -s * 0.48, s * 0.86, -s * 0.56, s * 0.74, -s * 0.74); ctx.stroke();
+    ctx.restore();
+  }
+  function leaf(ctx, x, y, s, a, col) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.fillStyle = col;
+    ctx.beginPath(); ctx.moveTo(0, -s * 0.5);
+    for (let i = 0; i < 3; i++) { const yy = -s * 0.32 + i * s * 0.25; ctx.quadraticCurveTo(s * 0.42, yy - s * 0.05, s * 0.2, yy + s * 0.09); }
+    ctx.quadraticCurveTo(s * 0.12, s * 0.4, 0, s * 0.5);
+    ctx.quadraticCurveTo(-s * 0.12, s * 0.4, -s * 0.2, s * 0.43 - s * 0.25);
+    for (let i = 2; i >= 0; i--) { const yy = -s * 0.32 + i * s * 0.25; ctx.quadraticCurveTo(-s * 0.42, yy - s * 0.05, -s * 0.2, yy - s * 0.12); }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(60,30,10,0.35)'; ctx.lineWidth = Math.max(0.6, s * 0.04); ctx.beginPath(); ctx.moveTo(0, -s * 0.4); ctx.lineTo(0, s * 0.62); ctx.stroke();
+    ctx.restore();
+  }
+  function back(idx, w, h, dpr) {
+    const cv = document.createElement('canvas'); cv.width = Math.ceil(w * dpr); cv.height = Math.ceil(h * dpr);
+    const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); paintBack(ctx, idx, w, h); return cv;
+  }
+  function paintBack(ctx, idx, w, h) {
+    const Q = C.quilt, r = Math.max(3, w * 0.08), R = artRng(1000 + idx);
+    ctx.save(); rr(ctx, 0, 0, w, h, r); ctx.fillStyle = Q.cream; ctx.fill(); ctx.clip();
+    const m = w * 0.06; const iw = w - 2 * m, ih = h - 2 * m;
+    ctx.save(); rr(ctx, m, m, iw, ih, r * 0.6); ctx.clip();
+    const lw = Math.max(0.8, w * 0.012);
+    switch (idx) {
+      case 0: { // Patchwork Kettle
+        const cols = 4, rows = 6, pw = iw / cols, ph = ih / rows; const pal = [Q.teal, Q.cream, Q.rust, Q.tealDark, Q.rustDark];
+        for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+          const px = m + i * pw, py = m + j * ph, k = (i * 3 + j * 2 + (i * j) % 3) % 5;
+          ctx.fillStyle = pal[k]; ctx.fillRect(px, py, pw + 0.5, ph + 0.5);
+          const t = (i + j * 2) % 4; ctx.fillStyle = k === 1 ? Q.rust : Q.cream; ctx.globalAlpha = 0.5;
+          if (t === 0) { ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + pw, py + ph); ctx.lineTo(px, py + ph); ctx.fill(); }
+          else if (t === 1) { for (let q = 0; q < 3; q++) for (let p = 0; p < 3; p++) { ctx.beginPath(); ctx.arc(px + pw * (p + 0.5) / 3, py + ph * (q + 0.5) / 3, Math.max(0.7, pw * 0.06), 0, 7); ctx.fill(); } }
+          else if (t === 2) { for (let q = 0; q < 3; q++) ctx.fillRect(px, py + ph * (q * 2 + 0.5) / 6, pw, ph / 10); }
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = 'rgba(255,248,230,0.7)'; ctx.setLineDash([Math.max(1, pw * 0.08), Math.max(1, pw * 0.07)]); ctx.lineWidth = Math.max(0.6, w * 0.008);
+          ctx.strokeRect(px + pw * 0.06, py + ph * 0.06, pw * 0.88, ph * 0.88); ctx.setLineDash([]);
+        }
+        ctx.fillStyle = Q.cream; ctx.beginPath(); ctx.ellipse(w / 2, h / 2, iw * 0.33, iw * 0.30, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = Q.rust; ctx.lineWidth = Math.max(1, w * 0.02); ctx.stroke();
+        kettle(ctx, w / 2 - iw * 0.03, h / 2 + iw * 0.03, iw * 0.42); break; }
+      case 1: { // Rain on the Pane
+        const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#5f7d92'); g.addColorStop(1, '#2f4658'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = 'rgba(255,214,150,0.18)'; ctx.beginPath(); ctx.arc(w * 0.72, h * 0.3, w * 0.3, 0, 7); ctx.fill();
+        for (let i = 0; i < 26; i++) { const x = R.n(m, w - m), y = R.n(m, h - m), s = R.n(0.015, 0.045) * w;
+          ctx.strokeStyle = 'rgba(220,235,245,0.35)'; ctx.lineWidth = s * 0.5; ctx.beginPath(); ctx.moveTo(x, y - s * 3); ctx.lineTo(x, y); ctx.stroke();
+          ctx.fillStyle = 'rgba(230,242,250,0.8)'; ctx.beginPath(); ctx.arc(x, y, s, 0, 7); ctx.fill(); }
+        ctx.fillStyle = Q.cream; ctx.fillRect(w / 2 - w * 0.03, 0, w * 0.06, h); ctx.fillRect(0, h * 0.48, w, w * 0.06); break; }
+      case 2: { // Fireside Embers
+        ctx.fillStyle = '#4a1f17'; ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = lw;
+        for (let y = m; y < h; y += h * 0.07) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); const off = ((y / (h * 0.07)) | 0) % 2 ? 0 : w * 0.12;
+          for (let x = off; x < w; x += w * 0.24) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + h * 0.07); ctx.stroke(); } }
+        ctx.fillStyle = '#1e0d09'; ctx.beginPath(); ctx.moveTo(w * 0.16, h * 0.86); ctx.lineTo(w * 0.16, h * 0.45); ctx.arc(w / 2, h * 0.45, w * 0.34, Math.PI, 0); ctx.lineTo(w * 0.84, h * 0.86); ctx.fill();
+        const fl = ctx.createRadialGradient(w / 2, h * 0.75, 1, w / 2, h * 0.7, w * 0.4); fl.addColorStop(0, 'rgba(255,200,90,0.95)'); fl.addColorStop(1, 'rgba(255,90,20,0)');
+        ctx.fillStyle = fl; ctx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 5; i++) { const fx = w * (0.3 + i * 0.1), fh2 = h * R.n(0.18, 0.3);
+          ctx.fillStyle = i % 2 ? '#ffb347' : '#ff7a2a'; ctx.beginPath(); ctx.moveTo(fx - w * 0.07, h * 0.78); ctx.quadraticCurveTo(fx - w * 0.06, h * 0.78 - fh2 * 0.6, fx, h * 0.78 - fh2);
+          ctx.quadraticCurveTo(fx + w * 0.06, h * 0.78 - fh2 * 0.6, fx + w * 0.07, h * 0.78); ctx.fill(); }
+        ctx.fillStyle = '#6b3b22'; rr(ctx, w * 0.24, h * 0.77, w * 0.52, h * 0.06, h * 0.03); ctx.fill(); rr(ctx, w * 0.3, h * 0.73, w * 0.4, h * 0.05, h * 0.025); ctx.fill();
+        for (let i = 0; i < 12; i++) { ctx.fillStyle = 'rgba(255,190,90,' + R.n(0.4, 0.9) + ')'; ctx.beginPath(); ctx.arc(R.n(w * 0.25, w * 0.75), R.n(h * 0.2, h * 0.6), w * 0.012, 0, 7); ctx.fill(); } break; }
+      case 3: { // Fairy Lights
+        const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#16233a'); g.addColorStop(1, '#22324d'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+        for (let row = 0; row < 4; row++) { const y0 = h * (0.16 + row * 0.22);
+          ctx.strokeStyle = 'rgba(30,30,25,0.9)'; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(0, y0); ctx.quadraticCurveTo(w / 2, y0 + h * 0.1, w, y0); ctx.stroke();
+          for (let i = 1; i < 6; i++) { const t = i / 6, x = w * t, y = y0 + h * 0.1 * 2 * t * (1 - t) * 1.0 + h * 0.02;
+            const gl = ctx.createRadialGradient(x, y, 0, x, y, w * 0.11); gl.addColorStop(0, 'rgba(255,214,130,0.75)'); gl.addColorStop(1, 'rgba(255,214,130,0)');
+            ctx.fillStyle = gl; ctx.fillRect(x - w * 0.12, y - w * 0.12, w * 0.24, w * 0.24);
+            ctx.fillStyle = '#ffe9b0'; ctx.beginPath(); ctx.ellipse(x, y, w * 0.022, w * 0.032, 0, 0, 7); ctx.fill(); } } break; }
+      case 4: { // Shortbread Tin: tartan
+        ctx.fillStyle = Q.rust; ctx.fillRect(0, 0, w, h);
+        const band = (c, a, pos, size) => { ctx.fillStyle = c; ctx.globalAlpha = a; for (let k = -1; k < 8; k++) { ctx.fillRect(pos + k * w * 0.34, 0, size, h); ctx.fillRect(0, pos + k * w * 0.34, w, size); } ctx.globalAlpha = 1; };
+        band(Q.tealDark, 0.55, w * 0.02, w * 0.14); band(Q.cream, 0.5, w * 0.2, w * 0.03); band('#2a2a2a', 0.25, w * 0.27, w * 0.05);
+        ctx.fillStyle = '#e8c88f'; ctx.beginPath(); ctx.arc(w / 2, h / 2, w * 0.27, 0, 7); ctx.fill();
+        ctx.strokeStyle = '#c99a58'; ctx.lineWidth = Math.max(1, w * 0.025); ctx.setLineDash([w * 0.03, w * 0.025]); ctx.beginPath(); ctx.arc(w / 2, h / 2, w * 0.24, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = '#c4904c'; for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; ctx.beginPath(); ctx.arc(w / 2 + Math.cos(a) * w * 0.12, h / 2 + Math.sin(a) * w * 0.12, w * 0.018, 0, 7); ctx.fill(); }
+        ctx.beginPath(); ctx.arc(w / 2, h / 2, w * 0.018, 0, 7); ctx.fill(); break; }
+      case 5: { // Oak Leaf Walk
+        ctx.fillStyle = '#f0e2c2'; ctx.fillRect(0, 0, w, h);
+        const pal = ['#b5532c', '#d08a35', '#8a3b1d', '#c9a043', '#9c6b2f'];
+        for (let i = 0; i < 16; i++) leaf(ctx, R.n(0, w), R.n(0, h), w * R.n(0.22, 0.34), R.n(0, 6.28), pal[R.i(5)]);
+        for (let i = 0; i < 5; i++) { const x = R.n(m, w - m), y = R.n(m, h - m); ctx.fillStyle = '#8a5a2b'; ctx.beginPath(); ctx.ellipse(x, y + w * 0.02, w * 0.035, w * 0.045, 0, 0, 7); ctx.fill();
+          ctx.fillStyle = '#5a3a1a'; ctx.beginPath(); ctx.ellipse(x, y - w * 0.01, w * 0.045, w * 0.022, 0, 0, 7); ctx.fill(); } break; }
+      case 6: { // Cable Knit
+        ctx.fillStyle = '#c99a3a'; ctx.fillRect(0, 0, w, h);
+        const cw2 = iw / 3;
+        for (let k = 0; k < 3; k++) { const x0 = m + k * cw2 + cw2 / 2; ctx.strokeStyle = 'rgba(255,240,200,0.55)'; ctx.lineWidth = cw2 * 0.22;
+          for (let y = m - cw2; y < h; y += cw2 * 0.9) { ctx.beginPath(); ctx.moveTo(x0 - cw2 * 0.25, y); ctx.bezierCurveTo(x0 - cw2 * 0.25, y + cw2 * 0.35, x0 + cw2 * 0.25, y + cw2 * 0.45, x0 + cw2 * 0.25, y + cw2 * 0.9); ctx.stroke();
+            ctx.strokeStyle = 'rgba(120,80,20,0.35)'; ctx.beginPath(); ctx.moveTo(x0 + cw2 * 0.25, y); ctx.bezierCurveTo(x0 + cw2 * 0.25, y + cw2 * 0.35, x0 - cw2 * 0.25, y + cw2 * 0.45, x0 - cw2 * 0.25, y + cw2 * 0.9); ctx.stroke(); ctx.strokeStyle = 'rgba(255,240,200,0.55)'; }
+          ctx.strokeStyle = 'rgba(110,70,15,0.4)'; ctx.lineWidth = Math.max(1, w * 0.015); ctx.beginPath(); ctx.moveTo(m + k * cw2, 0); ctx.lineTo(m + k * cw2, h); ctx.stroke(); }
+        ctx.fillStyle = Q.teal; ctx.beginPath(); ctx.arc(w / 2, h / 2, w * 0.13, 0, 7); ctx.fill(); ctx.fillStyle = Q.cream; ctx.beginPath(); ctx.arc(w / 2, h / 2, w * 0.05, 0, 7); ctx.fill(); break; }
+      case 7: { // Hillside Cottage
+        const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#9fb3bf'); g.addColorStop(0.6, '#d9d2c0'); g.addColorStop(1, '#d9d2c0'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(80,100,120,0.35)'; ctx.lineWidth = lw; for (let i = 0; i < 18; i++) { const x = R.n(0, w), y = R.n(0, h * 0.5); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - w * 0.03, y + h * 0.06); ctx.stroke(); }
+        ctx.fillStyle = '#6f8f55'; ctx.beginPath(); ctx.moveTo(0, h * 0.62); ctx.quadraticCurveTo(w * 0.4, h * 0.42, w, h * 0.58); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
+        ctx.fillStyle = '#4f7040'; ctx.beginPath(); ctx.moveTo(0, h * 0.78); ctx.quadraticCurveTo(w * 0.6, h * 0.64, w, h * 0.8); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
+        const hx = w * 0.42, hy = h * 0.5, hw = w * 0.3;
+        ctx.fillStyle = '#f3ecdc'; ctx.fillRect(hx, hy, hw, hw * 0.6);
+        ctx.fillStyle = '#5b4a44'; ctx.beginPath(); ctx.moveTo(hx - hw * 0.1, hy); ctx.lineTo(hx + hw / 2, hy - hw * 0.45); ctx.lineTo(hx + hw * 1.1, hy); ctx.fill();
+        ctx.fillRect(hx + hw * 0.7, hy - hw * 0.45, hw * 0.12, hw * 0.3);
+        ctx.fillStyle = Q.rust; ctx.fillRect(hx + hw * 0.42, hy + hw * 0.25, hw * 0.16, hw * 0.35);
+        ctx.fillStyle = '#ffd88a'; ctx.fillRect(hx + hw * 0.12, hy + hw * 0.15, hw * 0.18, hw * 0.16); ctx.fillRect(hx + hw * 0.7, hy + hw * 0.15, hw * 0.18, hw * 0.16);
+        ctx.strokeStyle = 'rgba(240,240,240,0.7)'; ctx.lineWidth = Math.max(1, w * 0.02); ctx.beginPath(); ctx.moveTo(hx + hw * 0.76, hy - hw * 0.5); ctx.bezierCurveTo(hx + hw * 0.6, hy - hw * 0.8, hx + hw * 1.0, hy - hw * 0.9, hx + hw * 0.8, hy - hw * 1.2); ctx.stroke(); break; }
+      case 8: { // Teatime Toile
+        ctx.fillStyle = '#f3ead6'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = Q.teal; ctx.lineWidth = Math.max(0.8, w * 0.014);
+        for (let j = 0; j < 4; j++) for (let i = 0; i < 2; i++) { const x = m + iw * (0.25 + i * 0.5) + (j % 2 ? iw * 0.12 : -iw * 0.05), y = m + ih * (0.13 + j * 0.25), s = iw * 0.2;
+          if ((i + j) % 2 === 0) { ctx.beginPath(); ctx.ellipse(x, y, s * 0.5, s * 0.38, 0, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x - s * 0.45, y); ctx.quadraticCurveTo(x - s * 0.85, y - s * 0.1, x - s * 0.9, y - s * 0.4); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x + s * 0.5, y, s * 0.2, -1.4, 1.4); ctx.stroke(); ctx.beginPath(); ctx.arc(x, y - s * 0.42, s * 0.08, 0, 7); ctx.stroke(); }
+          else { ctx.beginPath(); ctx.moveTo(x - s * 0.4, y - s * 0.2); ctx.quadraticCurveTo(x, y + s * 0.5, x + s * 0.4, y - s * 0.2); ctx.closePath(); ctx.stroke();
+            ctx.beginPath(); ctx.ellipse(x, y + s * 0.3, s * 0.5, s * 0.1, 0, 0, 7); ctx.stroke();
+            for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(x + s * 0.6, y + s * 0.4 - k * s * 0.25); ctx.quadraticCurveTo(x + s * 0.8, y + s * 0.3 - k * s * 0.25, x + s * 0.9, y + s * 0.1 - k * s * 0.25); ctx.stroke(); } } } break; }
+      case 9: { // Glass Garden Room
+        ctx.fillStyle = '#16302f'; ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = 'rgba(255,240,200,0.85)'; ctx.beginPath(); ctx.arc(w * 0.7, h * 0.2, w * 0.08, 0, 7); ctx.fill();
+        for (let i = 0; i < 9; i++) { const x = R.n(0, w), y = R.n(h * 0.45, h * 1.0); ctx.fillStyle = ['#2f6b4f', '#3e8560', '#24563f'][i % 3];
+          ctx.save(); ctx.translate(x, y); ctx.rotate(R.n(-0.8, 0.8)); ctx.beginPath(); ctx.ellipse(0, 0, w * 0.08, w * 0.22, 0, 0, 7); ctx.fill(); ctx.restore(); }
+        ctx.strokeStyle = 'rgba(210,225,215,0.75)'; ctx.lineWidth = Math.max(1, w * 0.025);
+        for (let k = 0; k < 3; k++) { const x0 = m + k * iw / 3; ctx.beginPath(); ctx.moveTo(x0, h); ctx.lineTo(x0, m + iw / 6); ctx.arc(x0 + iw / 6, m + iw / 6, iw / 6, Math.PI, 0); ctx.lineTo(x0 + iw / 3, h); ctx.stroke(); }
+        ctx.beginPath(); ctx.moveTo(0, h * 0.55); ctx.lineTo(w, h * 0.55); ctx.stroke(); break; }
+      case 10: { // Forest Forage
+        ctx.fillStyle = '#56703f'; ctx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 30; i++) { ctx.fillStyle = 'rgba(30,50,20,0.25)'; ctx.beginPath(); ctx.arc(R.n(0, w), R.n(0, h), w * R.n(0.01, 0.04), 0, 7); ctx.fill(); }
+        const shroom = (x, y, s) => { ctx.fillStyle = '#efe4cc'; rr(ctx, x - s * 0.12, y - s * 0.1, s * 0.24, s * 0.5, s * 0.08); ctx.fill();
+          ctx.fillStyle = Q.rust; ctx.beginPath(); ctx.ellipse(x, y - s * 0.1, s * 0.42, s * 0.3, 0, Math.PI, 0); ctx.fill();
+          ctx.fillStyle = '#f6eedc'; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(x - s * 0.2 + k * s * 0.2, y - s * 0.24 + (k % 2) * s * 0.06, s * 0.05, 0, 7); ctx.fill(); } };
+        shroom(w * 0.32, h * 0.38, w * 0.4); shroom(w * 0.68, h * 0.62, w * 0.34); shroom(w * 0.3, h * 0.8, w * 0.26);
+        ctx.strokeStyle = '#9cc06a'; ctx.lineWidth = Math.max(1, w * 0.015);
+        for (let k = 0; k < 2; k++) { const x = k ? w * 0.75 : w * 0.2, y = k ? h * 0.25 : h * 0.6; ctx.beginPath(); ctx.moveTo(x, y + h * 0.15); ctx.lineTo(x, y - h * 0.08); ctx.stroke();
+          for (let q = 0; q < 5; q++) { const yy = y + h * 0.12 - q * h * 0.045; ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x - w * 0.1, yy - h * 0.02); ctx.moveTo(x, yy); ctx.lineTo(x + w * 0.1, yy - h * 0.02); ctx.stroke(); } } break; }
+      default: { // 11 Candle and Book
+        ctx.fillStyle = '#3f2340'; ctx.fillRect(0, 0, w, h);
+        const gl = ctx.createRadialGradient(w / 2, h * 0.36, 1, w / 2, h * 0.36, w * 0.6); gl.addColorStop(0, 'rgba(255,205,120,0.55)'); gl.addColorStop(1, 'rgba(255,205,120,0)'); ctx.fillStyle = gl; ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#f2e6cc'; ctx.beginPath(); ctx.moveTo(w * 0.12, h * 0.74); ctx.quadraticCurveTo(w * 0.3, h * 0.68, w / 2, h * 0.74); ctx.quadraticCurveTo(w * 0.7, h * 0.68, w * 0.88, h * 0.74);
+        ctx.lineTo(w * 0.88, h * 0.86); ctx.quadraticCurveTo(w * 0.7, h * 0.8, w / 2, h * 0.86); ctx.quadraticCurveTo(w * 0.3, h * 0.8, w * 0.12, h * 0.86); ctx.fill();
+        ctx.strokeStyle = 'rgba(90,60,50,0.4)'; ctx.lineWidth = lw; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(w * 0.2, h * (0.76 + k * 0.025)); ctx.lineTo(w * 0.42, h * (0.76 + k * 0.025)); ctx.moveTo(w * 0.58, h * (0.76 + k * 0.025)); ctx.lineTo(w * 0.8, h * (0.76 + k * 0.025)); ctx.stroke(); }
+        ctx.fillStyle = '#efe4c8'; rr(ctx, w * 0.42, h * 0.38, w * 0.16, h * 0.3, w * 0.03); ctx.fill();
+        ctx.fillStyle = '#ffcf6a'; ctx.beginPath(); ctx.moveTo(w / 2, h * 0.22); ctx.quadraticCurveTo(w * 0.56, h * 0.31, w / 2, h * 0.36); ctx.quadraticCurveTo(w * 0.44, h * 0.31, w / 2, h * 0.22); ctx.fill();
+        ctx.fillStyle = '#fff4c8'; ctx.beginPath(); ctx.ellipse(w / 2, h * 0.32, w * 0.02, h * 0.03, 0, 0, 7); ctx.fill(); }
+    }
+    ctx.restore();
+    // cream border with stitches
+    ctx.strokeStyle = Q.rust; ctx.lineWidth = Math.max(1, w * 0.014); ctx.setLineDash([Math.max(1.5, w * 0.035), Math.max(1.2, w * 0.025)]);
+    rr(ctx, m * 0.5, m * 0.5, w - m, h - m, r * 0.8); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+    rr(ctx, 0.5, 0.5, w - 1, h - 1, r); ctx.strokeStyle = 'rgba(80,60,40,0.45)'; ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  /* ---------- tables ---------- */
+  function planks(ctx, W, H, cols, R, vertical, scrub) {
+    const n = Math.max(4, Math.round((vertical ? W : H) / 150));
+    const size = (vertical ? W : H) / n;
+    for (let i = 0; i < n; i++) {
+      const c = cols[i % cols.length];
+      ctx.fillStyle = c; if (vertical) ctx.fillRect(i * size, 0, size + 1, H); else ctx.fillRect(0, i * size, W, size + 1);
+      // grain
+      for (let k = 0; k < 26; k++) {
+        ctx.strokeStyle = 'rgba(' + (R.i(2) ? '70,40,15' : '255,235,200') + ',' + R.n(0.04, 0.12) + ')'; ctx.lineWidth = R.n(0.6, 2.2);
+        const p = i * size + R.n(2, size - 2);
+        ctx.beginPath();
+        if (vertical) { ctx.moveTo(p, 0); for (let y = 0; y <= H; y += 60) ctx.lineTo(p + Math.sin(y * 0.01 + k) * R.n(1, 5), y); }
+        else { ctx.moveTo(0, p); for (let x = 0; x <= W; x += 60) ctx.lineTo(x, p + Math.sin(x * 0.008 + k) * R.n(1, 5)); }
+        ctx.stroke();
+      }
+      // a knot now and then, with the grain bending around it
+      if (R.i(3) === 0) {
+        const kx = vertical ? i * size + R.n(size * 0.3, size * 0.7) : R.n(0, W), ky = vertical ? R.n(0, H) : i * size + R.n(size * 0.3, size * 0.7);
+        const kg = ctx.createRadialGradient(kx, ky, 0, kx, ky, 9); kg.addColorStop(0, 'rgba(70,38,15,0.35)'); kg.addColorStop(1, 'rgba(70,38,15,0)');
+        ctx.fillStyle = kg; ctx.save(); ctx.translate(kx, ky); ctx.scale(vertical ? 0.7 : 1.8, vertical ? 1.8 : 0.7); ctx.translate(-kx, -ky); ctx.fillRect(kx - 10, ky - 10, 20, 20); ctx.restore();
+        ctx.strokeStyle = 'rgba(80,45,20,0.10)'; ctx.lineWidth = 1;
+        for (let q = 1; q < 3; q++) { ctx.beginPath(); ctx.ellipse(kx, ky, q * 5 * (vertical ? 0.8 : 2.6), q * 5 * (vertical ? 2.6 : 0.8), 0, 0, 7); ctx.stroke(); }
+      }
+      ctx.fillStyle = 'rgba(40,20,5,0.35)'; if (vertical) ctx.fillRect(i * size, 0, 2, H); else ctx.fillRect(0, i * size, W, 2);
+      if (scrub) { ctx.fillStyle = 'rgba(255,250,235,0.07)'; for (let k = 0; k < 12; k++) { const p = i * size + R.n(0, size); if (vertical) ctx.fillRect(p, 0, R.n(4, 16), H); else ctx.fillRect(0, p, W, R.n(4, 16)); } }
+    }
+  }
+  function gingham(ctx, x, y, w, h, a, b, cell) {
+    ctx.fillStyle = a; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = b; ctx.globalAlpha = 0.45;
+    for (let i = 0; i * cell < w; i += 2) ctx.fillRect(x + i * cell, y, cell, h);
+    for (let j = 0; j * cell < h; j += 2) ctx.fillRect(x, y + j * cell, w, cell);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
+    for (let i = 0; i * 3 < h; i++) { ctx.beginPath(); ctx.moveTo(x, y + i * 3); ctx.lineTo(x + w, y + i * 3); ctx.stroke(); }
+  }
+  function shadowed(ctx, fn, blur, oy) { ctx.save(); ctx.shadowColor = 'rgba(30,15,5,0.35)'; ctx.shadowBlur = blur; ctx.shadowOffsetY = oy; fn(); ctx.restore(); }
+  // props return the point the ambient animation uses
+  function mug(ctx, x, y, s, body, band) {
+    shadowed(ctx, () => { ctx.fillStyle = body; ctx.beginPath(); ctx.arc(x, y, s, 0, 7); ctx.fill(); }, s * 0.3, s * 0.12);
+    ctx.strokeStyle = body; ctx.lineWidth = s * 0.22; ctx.beginPath(); ctx.arc(x + s * 1.1, y + s * 0.15, s * 0.36, -1.2, 1.5); ctx.stroke();
+    ctx.fillStyle = band; ctx.beginPath(); ctx.arc(x, y, s * 0.86, 0, 7); ctx.fill();
+    const tea = ctx.createRadialGradient(x - s * 0.2, y - s * 0.2, 1, x, y, s * 0.8); tea.addColorStop(0, '#a86a3c'); tea.addColorStop(1, '#6d3f1f');
+    ctx.fillStyle = tea; ctx.beginPath(); ctx.arc(x, y, s * 0.76, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,240,220,0.35)'; ctx.beginPath(); ctx.ellipse(x - s * 0.25, y - s * 0.3, s * 0.22, s * 0.1, -0.6, 0, 7); ctx.fill();
+    return { x, y, s };
+  }
+  function shortbread(ctx, x, y, s) {
+    shadowed(ctx, () => { ctx.fillStyle = '#f4efe6'; ctx.beginPath(); ctx.arc(x, y, s, 0, 7); ctx.fill(); }, s * 0.25, s * 0.1);
+    ctx.strokeStyle = C.quilt.teal; ctx.lineWidth = s * 0.05; ctx.beginPath(); ctx.arc(x, y, s * 0.9, 0, 7); ctx.stroke();
+    ctx.strokeStyle = 'rgba(47,127,122,0.5)'; ctx.setLineDash([s * 0.05, s * 0.05]); ctx.beginPath(); ctx.arc(x, y, s * 0.8, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+    const fingers = [[-0.35, -0.2, 0.5], [0.15, -0.3, -0.2], [-0.1, 0.25, 0.25], [0.38, 0.18, 1.2]];
+    for (const [fx, fy, a] of fingers) {
+      ctx.save(); ctx.translate(x + fx * s, y + fy * s); ctx.rotate(a);
+      shadowed(ctx, () => { ctx.fillStyle = '#e7c58a'; rr(ctx, -s * 0.36, -s * 0.13, s * 0.72, s * 0.26, s * 0.05); ctx.fill(); }, s * 0.06, s * 0.03);
+      ctx.fillStyle = '#c99a58'; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(-s * 0.24 + k * s * 0.16, 0, s * 0.022, 0, 7); ctx.fill(); }
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'; for (let k = 0; k < 6; k++) { ctx.beginPath(); ctx.arc(-s * 0.3 + k * s * 0.12, -s * 0.07 + (k % 2) * s * 0.12, s * 0.012, 0, 7); ctx.fill(); }
+      ctx.restore();
+    }
+  }
+  function books(ctx, x, y, s) {
+    const cols = ['#7a3b2e', '#2f5d54', '#c2873e'];
+    for (let i = 0; i < 3; i++) { ctx.save(); ctx.translate(x, y - i * s * 0.22); ctx.rotate(-0.08 + i * 0.07);
+      shadowed(ctx, () => { ctx.fillStyle = cols[i]; rr(ctx, -s * 0.9, -s * 0.12, s * 1.8, s * 0.24, s * 0.03); ctx.fill(); }, s * 0.1, s * 0.05);
+      ctx.fillStyle = '#efe4c8'; ctx.fillRect(-s * 0.86, -s * 0.06, s * 1.72, s * 0.04); ctx.restore(); }
+  }
+  function candle(ctx, x, y, s) {
+    shadowed(ctx, () => { ctx.fillStyle = '#8a6a3a'; ctx.beginPath(); ctx.arc(x, y, s * 0.75, 0, 7); ctx.fill(); }, s * 0.2, s * 0.08);
+    ctx.fillStyle = '#efe4c8'; ctx.beginPath(); ctx.arc(x, y, s * 0.42, 0, 7); ctx.fill();
+    return { x, y, s };
+  }
+  function knitThrow(ctx, x, y, w, h) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(-0.12);
+    shadowed(ctx, () => { ctx.fillStyle = '#2f5d54'; rr(ctx, 0, 0, w, h, 8); ctx.fill(); }, 14, 6);
+    ctx.strokeStyle = 'rgba(240,220,170,0.35)'; ctx.lineWidth = 3;
+    for (let i = 10; i < w; i += 16) for (let j = 8; j < h; j += 14) { ctx.beginPath(); ctx.moveTo(i - 5, j - 4); ctx.lineTo(i, j + 3); ctx.lineTo(i + 5, j - 4); ctx.stroke(); }
+    ctx.fillStyle = '#c2873e'; for (let j = 18; j < h; j += 46) ctx.fillRect(0, j, w, 7);
+    ctx.restore();
+  }
+  function plant(ctx, x, y, s, R) {
+    shadowed(ctx, () => { ctx.fillStyle = '#9a5a3a'; ctx.beginPath(); ctx.arc(x, y, s * 0.55, 0, 7); ctx.fill(); }, s * 0.2, s * 0.06);
+    ctx.fillStyle = '#3a2a20'; ctx.beginPath(); ctx.arc(x, y, s * 0.45, 0, 7); ctx.fill();
+    for (let i = 0; i < 9; i++) { const a = i * 0.7 + R.n(-0.2, 0.2); ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+      ctx.fillStyle = ['#2f6b4f', '#3e8560', '#24563f'][i % 3]; ctx.beginPath(); ctx.ellipse(s * 0.55, 0, s * 0.55, s * 0.2, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(200,230,200,0.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(s * 0.1, 0); ctx.lineTo(s * 1.0, 0); ctx.stroke(); ctx.restore(); }
+  }
+  // draw a whole table; returns anchor points for the ambient animation
+  function table(ctx, W, H, t, inset) {
+    const R = artRng(77 + t); const HH = H; H = H - (inset || 0);
+    const T = C.tables[t]; const u = Math.max(40, Math.min(W, H) * 0.12);
+    const out = { t, W, H };
+    if (t === 0) {
+      planks(ctx, W, HH, T.wood, R, false, true);
+      // daylight from a window at the top left, with the soft shadow of its frame
+      const g = ctx.createRadialGradient(W * 0.2, -H * 0.1, 10, W * 0.3, H * 0.2, Math.max(W, H) * 0.9);
+      g.addColorStop(0, T.light); g.addColorStop(1, 'rgba(255,248,225,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, HH);
+      // gingham runner across the lower part
+      const rh = Math.min(H * 0.16, 150), ry = Math.min(H * 0.80, H - rh * 0.35);
+      shadowed(ctx, () => { ctx.fillStyle = T.runner[0]; ctx.fillRect(-10, ry, W + 20, rh); }, 10, 3);
+      gingham(ctx, -10, ry, W + 20, rh, T.runner[0], T.runner[1], Math.max(8, Math.round(u * 0.16)));
+      ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(-10, ry + 4, W + 20, 2); ctx.fillRect(-10, ry + rh - 6, W + 20, 2);
+      out.mug = mug(ctx, u * 0.55, H - u * 0.55, u * 0.62, '#f4efe6', C.quilt.teal);
+      shortbread(ctx, W - u * 0.45, H - u * 0.75, u * 1.0);
+    } else if (t === 1) {
+      planks(ctx, W, HH, T.wood, R, true, false);
+      const g = ctx.createRadialGradient(-W * 0.05, H * 0.55, 10, -W * 0.05, H * 0.55, Math.max(W, H) * 1.0);
+      g.addColorStop(0, T.light); g.addColorStop(0.6, 'rgba(255,140,60,0.08)'); g.addColorStop(1, 'rgba(20,10,30,0.35)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, HH);
+      knitThrow(ctx, W - u * 2.6, H - u * 1.2, u * 3.4, u * 2.2);
+      books(ctx, u * 0.9, H - u * 0.5, u * 0.9);
+      out.candle = candle(ctx, u * 2.15, H - u * 0.42, u * 0.5);
+      out.fire = { x: 0, y: H * 0.55 };
+    } else {
+      planks(ctx, W, HH, T.wood, R, false, false);
+      const g = ctx.createRadialGradient(W / 2, H * 0.1, 10, W / 2, H * 0.4, Math.max(W, H) * 0.9);
+      g.addColorStop(0, T.light); g.addColorStop(1, 'rgba(5,10,25,0.45)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, HH);
+      // rain on the glass roof, seen as soft reflections on the table
+      ctx.strokeStyle = 'rgba(200,220,255,0.05)'; ctx.lineWidth = 2;
+      for (let i = 0; i < 40; i++) { const x = R.n(0, W), y = R.n(0, H); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 6, y + 40); ctx.stroke(); }
+      plant(ctx, u * 0.2, H - u * 0.1, u * 1.3, R); plant(ctx, W - u * 0.1, H - u * 0.4, u * 1.1, R);
+      out.lights = [];
+      const swags = Math.max(2, Math.round(W / 420));
+      for (let k = 0; k < swags; k++) {
+        const x0 = k * W / swags, x1 = (k + 1) * W / swags, y0 = 4, sag = Math.min(70, H * 0.08);
+        ctx.strokeStyle = 'rgba(20,20,15,0.8)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo((x0 + x1) / 2, y0 + sag * 2, x1, y0); ctx.stroke();
+        for (let i = 1; i < 8; i++) { const tt = i / 8; const x = (1 - tt) * (1 - tt) * x0 + 2 * (1 - tt) * tt * (x0 + x1) / 2 + tt * tt * x1;
+          const y = (1 - tt) * (1 - tt) * y0 + 2 * (1 - tt) * tt * (y0 + sag * 2) + tt * tt * y0; out.lights.push({ x, y: y + 4, p: R.n(0, 6.28) }); }
+      }
+      // side strings along the edges
+      for (let i = 0; i < 6; i++) { out.lights.push({ x: 8 + (i % 2) * 6, y: H * (0.2 + i * 0.12), p: R.n(0, 6.28) }); out.lights.push({ x: W - 10 - (i % 2) * 6, y: H * (0.25 + i * 0.11), p: R.n(0, 6.28) }); }
+    }
+    // soft vignette
+    const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(20,10,0,0.28)'); ctx.fillStyle = v; ctx.fillRect(0, 0, W, HH);
+    out.H = HH;
+    return out;
+  }
+  // one frame of the ambient animation (steam, firelight, fairy lights); time in ms
+  function ambient(ctx, A, time, still) {
+    const t = still ? 2000 : time;
+    if (A.t === 0 && A.mug) {
+      const { x, y, s } = A.mug;
+      for (let k = 0; k < 3; k++) {
+        const ph = ((t / 2600 + k / 3) % 1);
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.42 * Math.sin(ph * Math.PI)) + ')'; ctx.lineWidth = s * 0.16 * (1 - ph * 0.5); ctx.lineCap = 'round';
+        ctx.beginPath(); const bx = x + (k - 1) * s * 0.32, by = y - s * 0.2 - ph * s * 2.4;
+        ctx.moveTo(bx, by + s * 0.5); ctx.bezierCurveTo(bx + Math.sin(t / 700 + k) * s * 0.35, by, bx - Math.sin(t / 900 + k) * s * 0.35, by - s * 0.3, bx + Math.sin(t / 800 + k * 2) * s * 0.25, by - s * 0.7);
+        ctx.stroke();
+      }
+    } else if (A.t === 1) {
+      const f = 0.5 + 0.25 * Math.sin(t / 310) + 0.15 * Math.sin(t / 137 + 1) + 0.1 * Math.sin(t / 71);
+      const g = ctx.createRadialGradient(0, A.H * 0.55, 10, 0, A.H * 0.55, Math.max(A.W, A.H) * 0.55);
+      g.addColorStop(0, 'rgba(255,150,60,' + (0.16 * f) + ')'); g.addColorStop(1, 'rgba(255,150,60,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, A.W, A.H);
+      if (A.candle) { const { x, y, s } = A.candle; const gl = ctx.createRadialGradient(x, y, 1, x, y, s * 3);
+        gl.addColorStop(0, 'rgba(255,210,120,' + (0.35 + 0.1 * f) + ')'); gl.addColorStop(1, 'rgba(255,210,120,0)'); ctx.fillStyle = gl; ctx.fillRect(x - s * 3, y - s * 3, s * 6, s * 6);
+        ctx.fillStyle = '#ffd27a'; ctx.beginPath(); ctx.ellipse(x + Math.sin(t / 200) * 1.2, y - s * 0.05, s * 0.12, s * 0.22, 0, 0, 7); ctx.fill(); }
+      for (let k = 0; k < 6; k++) { const ph = ((t / 5200 + k / 6) % 1); ctx.fillStyle = 'rgba(255,170,80,' + (0.6 * (1 - ph)) + ')';
+        ctx.beginPath(); ctx.arc(ph * A.W * 0.25 + Math.sin(t / 900 + k) * 10, A.H * (0.35 + 0.08 * k) - ph * A.H * 0.15, 2, 0, 7); ctx.fill(); }
+    } else if (A.t === 2 && A.lights) {
+      for (const L of A.lights) {
+        const a = 0.55 + 0.45 * Math.sin(t / 900 + L.p * 3);
+        const g = ctx.createRadialGradient(L.x, L.y, 0, L.x, L.y, 18); g.addColorStop(0, 'rgba(255,214,130,' + (0.55 * a) + ')'); g.addColorStop(1, 'rgba(255,214,130,0)');
+        ctx.fillStyle = g; ctx.fillRect(L.x - 18, L.y - 18, 36, 36);
+        ctx.fillStyle = 'rgba(255,236,180,' + (0.5 + 0.5 * a) + ')'; ctx.beginPath(); ctx.ellipse(L.x, L.y, 2.6, 3.6, 0, 0, 7); ctx.fill();
+      }
+    }
+  }
+  return { FONT, SERIF, rr, pip, pipPath, suitColour, face, back, paintBack, table, ambient, kettle };
+})();
+
+/* ===================== PAGE: layout, cards on the table, input, menus, sound ===================== */
+(function () {
+  'use strict';
+  const C = CONFIG, T = CONFIG.text, E = ENG;
+  const Q = new URLSearchParams(location.search);
+  const MODE = Q.get('selftest') === '1' ? 'selftest' : Q.get('tour') === '1' ? 'tour' : Q.get('cover') === '1' ? 'cover' : 'play';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  /* ---------- self test page: rule engine only, no drawing ---------- */
+  if (MODE === 'selftest') {
+    document.body.className = 'selftest';
+    document.body.innerHTML = '<main id="st"><h1>' + esc(C.name) + ' · ' + esc(T.selftest) + '</h1><p id="stLine">' + esc(T.selftestRun) + '</p><div id="stTable"></div></main>';
+    setTimeout(() => {
+      const t0 = Date.now(); const r = SELFTEST(C); const ms = Date.now() - t0;
+      const line = 'SELFTEST ' + (r.passed === r.total ? 'PASS' : 'FAIL') + ' ' + r.passed + '/' + r.total + ' checksum ' + r.checksum;
+      $('stLine').textContent = line + ' (' + ms + ' ms)';
+      let h = '<table><tr><th>#</th><th>' + esc(T.check) + '</th><th>' + esc(T.expected) + '</th><th>' + esc(T.got) + '</th><th>' + esc(T.result) + '</th></tr>';
+      r.rows.forEach((x, i) => { h += '<tr class="' + (x.pass ? 'ok' : 'bad') + '"><td>' + (i + 1) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.expect) + '</td><td>' + esc(x.got) + '</td><td>' + (x.pass ? T.pass : T.fail) + '</td></tr>'; });
+      h += '</table><h2>FreeCell deals 1-20</h2><p class="mono">' + r.fcInfo.map(d => d.deal + ': attempt ' + d.attempt + ', ' + d.len + ' moves, ' + d.positions + ' positions').join('<br>') + '</p>';
+      for (const su of [1, 2, 4]) h += '<h2>Spider ' + su + '-suit deals 1-30</h2><p class="mono">' + r.spInfo[su].map(d => d.deal + ': attempt ' + d.attempt + ', ' + d.len + ' moves').join('<br>') + '</p>';
+      $('stTable').innerHTML = h; document.title = line; window.SELFTEST_RESULT = { line, ms, rows: r.rows, fcInfo: r.fcInfo, spInfo: r.spInfo };
+      console.log(line);
+    }, 30);
+    return;
+  }
+
+  /* ---------- storage and data ---------- */
+  let store = null; try { store = window.localStorage; store.getItem('x'); } catch (e) { store = null; }
+  const memory = { m: {}, getItem(k) { return k in this.m ? this.m[k] : null; }, setItem(k, v) { this.m[k] = String(v); } };
+  const SANDBOX = MODE !== 'play';
+  const disk = SANDBOX || !store ? memory : store;
+  const loaded = E.loadData(disk, C.saveKey, C.spareKey);
+  let DATA = loaded.data;
+  const reduceDefault = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  DATA.settings = Object.assign({ music: C.musicVolume, effects: C.effectsVolume, table: 0, four: false, large: false, reduced: reduceDefault, muted: false }, DATA.settings || {});
+  if (!(DATA.back >= 1 && DATA.back <= DATA.unlocked)) DATA.back = 1;
+  function save() { if (SANDBOX) return; E.saveData(disk, C.saveKey, DATA); }
+  const S = () => DATA.settings;
+
+  /* ---------- elements ---------- */
+  const bg = $('bg'), amb = $('amb'), cv = $('cv');
+  const bctx = bg.getContext('2d'), actx = amb.getContext('2d'), ctx = cv.getContext('2d');
+  const hud = $('hud'), tools = $('tools');
+  let W = 0, H = 0, DPR = 1, AMB = null;
+
+  /* ---------- sound: everything synthesised with Web Audio, silent until the first input ---------- */
+  const AU = { ctx: null, master: null, sfx: null, mus: null, noise: null, loops: {}, src: null, cur: -1, rendering: {} };
+  function audioInit() {
+    if (AU.ctx || MODE === 'cover') return;
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    try { AU.ctx = new AC(); } catch (e) { return; }
+    const a = AU.ctx; AU.master = a.createGain(); AU.master.connect(a.destination);
+    AU.sfx = a.createGain(); AU.sfx.connect(AU.master); AU.mus = a.createGain(); AU.mus.connect(AU.master);
+    const nb = a.createBuffer(1, a.sampleRate, a.sampleRate); const d = nb.getChannelData(0); const r = E.makeRng(99);
+    for (let i = 0; i < d.length; i++) d[i] = (r.next() / 2147483648) - 1; AU.noise = nb;
+    applyVolumes(); musicFor(S().table);
+  }
+  function applyVolumes() {
+    if (!AU.ctx) return; const t = AU.ctx.currentTime;
+    AU.master.gain.setTargetAtTime(S().muted ? 0 : 1, t, 0.05);
+    AU.sfx.gain.setTargetAtTime(S().effects / 100 * 0.9, t, 0.05);
+    AU.mus.gain.setTargetAtTime(S().music / 100 * 0.42, t, 0.3);
+  }
+  function env(g, t, a, peak, d) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
+  function noiseHit(t, dur, f0, f1, q, vol, type) {
+    const a = AU.ctx, s = a.createBufferSource(); s.buffer = AU.noise; const f = a.createBiquadFilter(); f.type = type || 'bandpass'; f.Q.value = q;
+    f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur); const g = a.createGain(); env(g, t, 0.006, vol, dur);
+    s.connect(f); f.connect(g); g.connect(AU.sfx); s.start(t, (t * 7919) % 0.5); s.stop(t + dur + 0.05);
+  }
+  function tone(t, freq, dur, vol, type, dest, glide) {
+    const a = AU.ctx, o = a.createOscillator(); o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
+    if (glide) o.frequency.exponentialRampToValueAtTime(glide, t + dur);
+    const g = a.createGain(); env(g, t, 0.008, vol, dur); o.connect(g); g.connect(dest || AU.sfx); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function bell(t, freq, dur, vol, dest) { tone(t, freq, dur, vol, 'sine', dest); tone(t, freq * 2.76, dur * 0.45, vol * 0.25, 'sine', dest); tone(t, freq * 5.4, dur * 0.2, vol * 0.08, 'sine', dest); }
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  function sfx(name, delay) {
+    if (!AU.ctx || AU.ctx.state !== 'running') return;
+    const t = AU.ctx.currentTime + (delay || 0) / 1000 + 0.005;
+    switch (name) {
+      case 'slide': noiseHit(t, 0.11, 2400, 900, 0.9, 0.16); break;
+      case 'flip': noiseHit(t, 0.045, 5200, 2600, 1.2, 0.12); tone(t, 1400, 0.02, 0.025, 'triangle'); break;
+      case 'place': noiseHit(t, 0.07, 900, 300, 0.8, 0.2, 'lowpass'); tone(t, 190, 0.08, 0.09, 'sine', null, 110); break;
+      case 'wobble': tone(t, 233, 0.09, 0.08, 'triangle'); tone(t + 0.1, 208, 0.12, 0.08, 'triangle'); break;
+      case 'chime': [76, 80, 83, 88].forEach((m, i) => bell(t + i * 0.075, mtof(m), 0.9, 0.12)); break;
+      case 'stamp': noiseHit(t, 0.16, 500, 120, 0.7, 0.42, 'lowpass'); tone(t, 95, 0.18, 0.2, 'sine', null, 60); break;
+      case 'deal': for (let i = 0; i < 6; i++) noiseHit(t + i * 0.05, 0.04, 4600, 2400, 1.1, 0.07); break;
+      case 'win': [72, 76, 79, 84, 79, 84, 88].forEach((m, i) => bell(t + i * 0.16, mtof(m), 1.3, 0.13)); break;
+      case 'tick': tone(t, 880, 0.03, 0.03, 'sine'); break;
+    }
+  }
+  // calm music loops, rendered once per table with an offline context and looped
+  const SONGS = [
+    { bpm: 92, beats: 3, bars: 16, root: 53, chords: [[53, 57, 60], [48, 52, 55], [50, 53, 57], [46, 50, 53], [53, 57, 60], [55, 58, 62], [48, 52, 55], [48, 52, 55], [50, 53, 57], [57, 60, 64], [46, 50, 53], [53, 57, 60], [55, 58, 62], [48, 52, 55], [53, 57, 60], [53, 57, 60]],
+      mel: [[72, 2], [69, 1], [67, 2], [64, 1], [65, 1], [69, 1], [74, 1], [74, 2], [72, 1], [69, 2], [72, 1], [70, 1], [69, 1], [67, 1], [64, 1], [67, 1], [72, 1], [72, 3], [74, 2], [77, 1], [76, 2], [72, 1], [74, 1], [72, 1], [70, 1], [69, 2], [65, 1], [67, 1], [70, 1], [74, 1], [72, 2], [64, 1], [65, 3], [0, 3]], lead: 'pluck' },
+    { bpm: 66, beats: 4, bars: 8, root: 50, chords: [[50, 53, 57, 60], [46, 50, 53, 57], [53, 57, 60, 64], [48, 52, 55, 59], [50, 53, 57, 60], [43, 50, 53, 58], [46, 50, 53, 57], [45, 49, 52, 57]],
+      mel: [[69, 2], [67, 1], [65, 1], [62, 4], [65, 2], [64, 1], [62, 1], [60, 3], [0, 1], [69, 2], [72, 1], [69, 1], [67, 4], [65, 2], [62, 1], [65, 1], [64, 4]], lead: 'piano' },
+    { bpm: 72, beats: 4, bars: 8, root: 57, chords: [[57, 61, 64, 68], [54, 57, 61, 64], [50, 54, 57, 61], [52, 56, 59, 64], [57, 61, 64, 68], [54, 57, 61, 64], [50, 54, 57, 61], [52, 56, 59, 62]],
+      mel: null, lead: 'celesta' }
+  ];
+  function renderSong(i, done) {
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext; if (!OAC) return;
+    const sg = SONGS[i], beat = 60 / sg.bpm, barLen = beat * sg.beats, len = barLen * sg.bars, tail = 3, sr = 22050;
+    let oc; try { oc = new OAC(2, Math.ceil((len + tail) * sr), sr); } catch (e) { return; }
+    const out = oc.createGain(); out.gain.value = 0.9; const lp = oc.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3200; out.connect(lp); lp.connect(oc.destination);
+    const note = (t, m, d, v, kind) => {
+      const f = mtof(m); const g = oc.createGain(); g.connect(out);
+      if (kind === 'pad') { [0, 7, -6].forEach(det => { const o = oc.createOscillator(); o.type = 'triangle'; o.frequency.value = f; o.detune.value = det; o.connect(g); o.start(t); o.stop(t + d + 1.6); });
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + 0.6); g.gain.setValueAtTime(v, t + d); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 1.5); return; }
+      const o = oc.createOscillator(); o.type = kind === 'bass' ? 'sine' : kind === 'piano' ? 'triangle' : 'sine'; o.frequency.value = f; o.connect(g);
+      const o2 = oc.createOscillator(); o2.type = 'sine'; let f2 = f * (kind === 'celesta' ? 4 : 2); while (f2 > sr * 0.45) f2 /= 2; o2.frequency.value = f2; // the overtone stays under the loop's sample-rate limit const g2 = oc.createGain(); g2.gain.value = kind === 'celesta' ? 0.18 : 0.3; o2.connect(g2); g2.connect(g);
+      const dec = kind === 'pluck' ? 1.1 : kind === 'piano' ? 1.8 : kind === 'celesta' ? 1.4 : 0.9;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + (kind === 'piano' ? 0.02 : 0.01)); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(d, 0.2) + dec);
+      o.start(t); o2.start(t); o.stop(t + d + dec + 0.1); o2.stop(t + d + dec + 0.1);
+    };
+    const R = E.makeRng(4242 + i);
+    sg.chords.forEach((ch, b) => {
+      const t0 = b * barLen;
+      ch.forEach(m => note(t0, m, barLen * 0.95, 0.035, 'pad'));
+      note(t0, ch[0] - 12, beat * 1.5, 0.12, 'bass');
+      if (i === 0) { for (let k = 1; k < sg.beats; k++) ch.forEach((m, j) => note(t0 + k * beat, m + 12, beat * 0.5, j === 0 ? 0.04 : 0.03, 'pluck')); }
+      if (i === 1) { const arp = [0, 1, 2, 3, 2, 1, 2, 3]; arp.forEach((k, j) => note(t0 + j * beat / 2, ch[k] + 12, beat * 0.6, 0.045, 'piano')); }
+      if (i === 2) { for (let j = 0; j < 8; j++) { if (R.int(100) < 72) note(t0 + j * beat / 2, ch[R.int(ch.length)] + 24 + (R.int(100) < 30 ? 12 : 0), beat * 0.4, 0.05, 'celesta'); } }
+    });
+    if (sg.mel) { let t = 0; for (const [m, d] of sg.mel) { if (m) note(t * beat, m, d * beat * 0.9, sg.lead === 'piano' ? 0.075 : 0.07, sg.lead); t += d; } }
+    oc.oncomplete = ev => {
+      const buf = ev.renderedBuffer, L = Math.ceil(len * sr), tl = Math.ceil(tail * sr);
+      const loop = AU.ctx.createBuffer(2, L, sr);
+      for (let c = 0; c < 2; c++) { const src = buf.getChannelData(c), dst = loop.getChannelData(c); for (let k = 0; k < L; k++) dst[k] = src[k]; for (let k = 0; k < tl && L + k < src.length; k++) dst[k] += src[L + k]; }
+      done(loop);
+    };
+    try { const p = oc.startRendering(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* no music */ }
+  }
+  function musicFor(i) {
+    if (!AU.ctx) return;
+    if (AU.cur === i && AU.src) return;
+    AU.cur = i;
+    const start = buf => {
+      if (AU.cur !== i) return;
+      if (AU.src) { const old = AU.src, og = old._g; og.gain.setTargetAtTime(0.0001, AU.ctx.currentTime, 0.4); setTimeout(() => { try { old.stop(); } catch (e) {} }, 2000); }
+      const s = AU.ctx.createBufferSource(); s.buffer = buf; s.loop = true; const g = AU.ctx.createGain(); g.gain.setValueAtTime(0.0001, AU.ctx.currentTime); g.gain.setTargetAtTime(1, AU.ctx.currentTime, 0.8);
+      s.connect(g); g.connect(AU.mus); s._g = g; s.start(); AU.src = s;
+    };
+    if (AU.loops[i]) start(AU.loops[i]);
+    else if (!AU.rendering[i]) { AU.rendering[i] = 1; renderSong(i, buf => { AU.loops[i] = buf; start(buf); }); }
+  }
+  function firstInput() { audioInit(); if (AU.ctx && AU.ctx.state === 'suspended' && !document.hidden) AU.ctx.resume(); }
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => window.addEventListener(ev, firstInput, { capture: true, passive: true }));
+
+  /* ---------- sizes and caches ---------- */
+  const CACHE = { cw: 0, ch: 0, dpr: 0, key: '', faces: [], back: null, shadow: null, lift: null, slot: null };
+  function rebuildCache(cw, ch) {
+    const key = cw + 'x' + ch + '@' + DPR + (S().four ? 'f' : '') + (S().large ? 'L' : '') + 'b' + DATA.back;
+    if (CACHE.key === key) return; CACHE.key = key; CACHE.cw = cw; CACHE.ch = ch;
+    const opt = { dpr: DPR, four: S().four, large: S().large };
+    CACHE.faces = []; for (let c = 0; c < 52; c++) CACHE.faces.push(ART.face(c, cw, ch, opt));
+    CACHE.back = ART.back(DATA.back - 1, cw, ch, DPR);
+    const pad = Math.ceil(cw * 0.25);
+    const mk = (blur, oy, a) => { const s = document.createElement('canvas'); s.width = Math.ceil((cw + pad * 2) * DPR); s.height = Math.ceil((ch + pad * 2) * DPR);
+      const x = s.getContext('2d'); x.scale(DPR, DPR); x.shadowColor = 'rgba(20,10,0,' + a + ')'; x.shadowBlur = blur; x.shadowOffsetY = oy;
+      x.fillStyle = 'rgba(20,10,0,' + a + ')'; ART.rr(x, pad, pad, cw, ch, Math.max(3, cw * 0.08)); x.fill(); return { c: s, pad }; };
+    CACHE.shadow = mk(Math.max(2, cw * 0.05), Math.max(1, cw * 0.02), 0.28); CACHE.lift = mk(Math.max(6, cw * 0.16), Math.max(4, cw * 0.09), 0.3);
+  }
+
+  /* ---------- geometry ---------- */
+  let G = null;
+  function hudHeights() {
+    const top = hud.classList.contains('off') ? 0 : hud.offsetHeight;
+    const fixedBottom = getComputedStyle(tools).position === 'fixed' && !hud.classList.contains('off');
+    return { top, bottom: fixedBottom ? tools.offsetHeight : 0 };
+  }
+  function computeGeom(kind, force) {
+    const hh = hudHeights(); const ncol = kind === 'fc' ? 8 : 10;
+    const top = hh.top + (H < 500 ? 6 : 12), bottom = H - hh.bottom - (H < 500 ? 4 : 10);
+    const side = W < 560 ? 5 : W < 1000 ? 14 : 24;
+    const gr = kind === 'fc' ? 0.16 : 0.10;
+    let cw = (W - 2 * side) / (ncol + (ncol - 1) * gr);
+    const rows = kind === 'fc' ? 3.4 : 3.6;
+    const cwMax = Math.min(cw, (bottom - top) / (rows * 1.4), kind === 'fc' ? 128 : 112);
+    // cards get smaller while a long column needs room, so every index stays readable
+    const fuMin = S().large ? 0.36 : 0.27, fdMin = 0.07; let need = 0;
+    if (GAME && GAME.kind === kind) { const st = GAME.state; for (let i = 0; i < ncol; i++) { const n = st.cols[i].length, k = kind === 'fc' ? 0 : Math.min(st.down[i], n); const m = n - k; need = Math.max(need, fdMin * k + fuMin * Math.max(0, m - 1)); } }
+    const chFit = (bottom - top) / (1 + 0.16 + 1 + need);
+    cw = Math.min(cwMax, chFit / 1.4); cw = Math.max(cw, Math.min(cwMax, Math.max(24, cwMax * 0.5)));
+    cw = Math.max(24, cw >= cwMax ? Math.floor(cwMax) : Math.floor(cw / 4) * 4); // steps of 4 px keep the card cache calm
+    if (G && G.kind === kind && G.W === W && G.H === H && !force && cw > G.cw && cw < G.cw + 8) cw = G.cw; // no small jumps back up
+    const ch = Math.round(cw * 1.4); const gap = Math.max(3, Math.round(cw * gr));
+    const total = ncol * cw + (ncol - 1) * gap; const x0 = Math.round((W - total) / 2);
+    const rowY = top, colY = top + ch + Math.max(8, Math.round(ch * 0.16));
+    // face-up overlap: at least enough to read the index, more when the screen is tall
+    const room = (bottom - colY - ch) / (kind === 'fc' ? 12 : 16);
+    const fu = Math.round(Math.min(ch * (H > W ? 0.64 : 0.46), Math.max(ch * (S().large ? 0.36 : 0.30), room))) /* tall screens show more of each card */, fd = Math.max(4, Math.round(ch * 0.11));
+    G = { kind, ncol, cw, ch, gap, x0, rowY, colY, bottom, fu, fd, W, H, colX: i => x0 + i * (cw + gap) };
+    rebuildCache(cw, ch);
+  }
+  function columnOffsets(n, down) {
+    const avail = G.bottom - G.colY - G.ch; const up = Math.max(0, n - down - 1), dn = Math.min(down, n - 1 < 0 ? 0 : down);
+    let fu = Math.max(G.fu, 0), fd = G.fd; const need = dn * fd + up * fu;
+    if (need > avail && need > 0) { const k = avail / need; fu = fu * k; fd = fd * k; if (fd < 2) fd = 2; if (dn * fd + up * fu > avail && up) fu = Math.max(1, (avail - dn * fd) / up); }
+    const ys = []; let y = G.colY; for (let j = 0; j < n; j++) { ys.push(Math.round(y)); y += j < down ? fd : fu; }
+    return ys;
+  }
+  // every card's place on the table for the current state
+  function slots() {
+    const g = GAME, st = g.state, out = [];
+    if (g.kind === 'fc') {
+      for (let k = 0; k < 4; k++) if (st.cells[k] >= 0) out.push({ key: 'x' + k, code: st.cells[k], up: 1, x: G.colX(k), y: G.rowY, z: 1 });
+      for (let s = 0; s < 4; s++) for (let r = 0; r < st.home[s]; r++) out.push({ key: 'h' + s + ':' + r, code: s * 13 + r, up: 1, x: G.colX(4 + s), y: G.rowY, z: 1 + r });
+      for (let i = 0; i < 8; i++) { const col = st.cols[i], ys = columnOffsets(col.length, 0); for (let j = 0; j < col.length; j++) out.push({ key: 'c' + i + ':' + j, code: col[j], up: 1, x: G.colX(i), y: ys[j], z: 100 + j }); }
+    } else {
+      const sx = G.colX(9), dx = Math.round(G.cw * 0.16);
+      for (let r = st.stock.length - 1; r >= 0; r--) { const rowIdx = st.stock.length - 1 - r; for (let c = 0; c < 10; c++) out.push({ key: 's' + (5 - st.stock.length + r) + ':' + c, code: st.stock[r][c], up: 0, x: sx - rowIdx * dx, y: G.rowY, z: 1 + rowIdx * 10 + c }); }
+      for (let k = 0; k < st.runs.length; k++) { const su = st.runs[k]; for (let i = 0; i < 13; i++) out.push({ key: 'r' + k + ':' + i, code: su * 13 + i, up: 1, x: G.x0 + k * Math.round((G.cw + G.gap) * 0.62), y: G.rowY, z: 1 + k * 13 + i }); }
+      for (let i = 0; i < 10; i++) { const col = st.cols[i], ys = columnOffsets(col.length, st.down[i]); for (let j = 0; j < col.length; j++) out.push({ key: 'c' + i + ':' + j, code: col[j], up: j >= st.down[i] ? 1 : 0, x: G.colX(i), y: ys[j], z: 100 + j }); }
+    }
+    return out;
+  }
+
+  /* ---------- sprites and animation ---------- */
+  let SPR = [], ORDER = [], DIRTY = true, ANIM_UNTIL = 0;
+  const now = () => performance.now();
+  const ease = p => 1 - Math.pow(1 - p, 3);
+  function motion() { return S().reduced ? 0.35 : 1; }
+  // match new places to the cards already on screen and glide each card that changed
+  function sync(info) {
+    info = info || {}; if (GAME) computeGeom(GAME.kind); const list = slots(); const t = now(); const delays = info.delays || {};
+    const old = new Map(); for (const s of SPR) old.set(s.key, s);
+    const used = new Set(); const next = [];
+    for (const sl of list) { const o = old.get(sl.key); if (o && o.code === sl.code) { used.add(o); next.push([sl, o]); } else next.push([sl, null]); }
+    const free = SPR.filter(s => !used.has(s));
+    for (const pair of next) { if (pair[1]) continue; const sl = pair[0]; let best = -1, bd = 1e18;
+      for (let i = 0; i < free.length; i++) { const f = free[i]; if (f.code !== sl.code) continue; const d = (f.x - sl.x) ** 2 + (f.y - sl.y) ** 2; if (d < bd) { bd = d; best = i; } }
+      if (best >= 0) { pair[1] = free[best]; free.splice(best, 1); } }
+    const m = motion(); const out = [];
+    for (const [sl, o0] of next) {
+      let o = o0;
+      if (!o) { const from = info.from || { x: sl.x, y: sl.y }; o = { code: sl.code, key: sl.key, x: from.x, y: from.y, up: info.from ? 0 : sl.up, ax: from.x, ay: from.y, t0: t, dur: 0, delay: 0, fl: null }; }
+      const moved = Math.abs(o.x - sl.x) > 0.5 || Math.abs(o.y - sl.y) > 0.5;
+      const dl = (delays[sl.code + ':' + sl.key] !== undefined ? delays[sl.code + ':' + sl.key] : delays[sl.code]) || 0;
+      if (moved) { o.ax = o.x; o.ay = o.y; o.t0 = t; o.dur = (info.dur || C.anim.move) * m; o.delay = dl * m; ANIM_UNTIL = Math.max(ANIM_UNTIL, t + o.delay + o.dur + 30); }
+      if (o.up !== sl.up) { o.fl = { t0: t + (moved ? o.delay + o.dur * 0.6 : (info.flipDelay || 0) * m), dur: C.anim.flip * m, to: sl.up }; ANIM_UNTIL = Math.max(ANIM_UNTIL, o.fl.t0 + o.fl.dur + 30); }
+      o.key = sl.key; o.tx = sl.x; o.ty = sl.y; o.z = sl.z; o.code = sl.code; out.push(o);
+      if (!moved) { o.x = sl.x; o.y = sl.y; }
+    }
+    SPR = out; ORDER = SPR.slice().sort((a, b) => a.z - b.z || a.tx - b.tx); DIRTY = true;
+  }
+  function stepSprites(t) {
+    let busy = false;
+    for (const s of SPR) {
+      if (s.dur > 0) { const p = (t - s.t0 - s.delay) / s.dur;
+        if (p >= 1) { s.x = s.tx; s.y = s.ty; s.dur = 0; s.moving = false; }
+        else if (p > 0) { const e = ease(p); s.x = s.ax + (s.tx - s.ax) * e; s.y = s.ay + (s.ty - s.ay) * e - Math.sin(p * Math.PI) * G.ch * 0.06; s.moving = true; busy = true; }
+        else { s.moving = s.delay > 0; busy = true; } }
+      if (s.fl) { if (t >= s.fl.t0 + s.fl.dur) { s.up = s.fl.to; s.fl = null; } else busy = true; }
+    }
+    return busy;
+  }
+
+  /* ---------- drawing the cards ---------- */
+  let HINT = null, DRAG = null, FOCUS = { on: false, row: 1, idx: 0, depth: 0 }, CASCADE = null, TARGETS = null, WOBBLE = null;
+  function drawSlot(x, y, label, suit) {
+    const r = Math.max(3, G.cw * 0.08);
+    ART.rr(ctx, x + 1, y + 1, G.cw - 2, G.ch - 2, r); ctx.fillStyle = 'rgba(30,18,8,0.16)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,248,230,0.45)'; ctx.lineWidth = Math.max(1, G.cw * 0.02); ctx.setLineDash([Math.max(3, G.cw * 0.06), Math.max(2, G.cw * 0.05)]); ctx.stroke(); ctx.setLineDash([]);
+    if (suit !== undefined) { ctx.fillStyle = 'rgba(255,248,230,0.32)'; ART.pip(ctx, suit, x + G.cw / 2, y + G.ch / 2, G.cw * 0.42, false); }
+    else if (label) { ctx.fillStyle = 'rgba(255,248,230,0.42)'; ctx.font = '600 ' + Math.round(G.cw * 0.2) + 'px ' + ART.FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, x + G.cw / 2, y + G.ch / 2); }
+  }
+  function glow(x, y, w, h, col, a, fill) {
+    ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = Math.max(12, G.cw * 0.28); ctx.strokeStyle = col; ctx.globalAlpha = a; ctx.lineWidth = Math.max(3, G.cw * 0.06);
+    ART.rr(ctx, x - 3, y - 3, w + 6, h + 6, Math.max(5, G.cw * 0.11)); ctx.stroke(); ctx.stroke();
+    if (fill) { ctx.shadowBlur = 0; ctx.globalAlpha = a * 0.22; ctx.fillStyle = col; ART.rr(ctx, x, y, w, h, Math.max(3, G.cw * 0.08)); ctx.fill(); }
+    ctx.restore();
+  }
+  function cardRectOfKey(key) { const s = SPR.find(q => q.key === key); return s ? { x: s.x, y: s.y, w: G.cw, h: G.ch } : null; }
+  function pileRect(t) { // landing rect of a pile for highlights and drops
+    const g = GAME;
+    if (g.kind === 'fc') {
+      if (t === E.HOME) return null;
+      if (t >= 8 && t < 12) return { x: G.colX(t - 8), y: G.rowY, w: G.cw, h: G.ch };
+      if (t >= 12 && t < 16) return { x: G.colX(4 + t - 12), y: G.rowY, w: G.cw, h: G.ch };
+    }
+    if (t >= 0 && t < G.ncol) { const col = g.state.cols[t]; if (!col.length) return { x: G.colX(t), y: G.colY, w: G.cw, h: G.ch }; const s = SPR.find(q => q.key === 'c' + t + ':' + (col.length - 1)); return s ? { x: s.tx, y: s.ty, w: G.cw, h: G.ch } : null; }
+    return null;
+  }
+  function draw(t) {
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H);
+    if (!GAME || !G || SCREEN !== 'game') return;
+    const g = GAME;
+    if (g.kind === 'fc') { for (let k = 0; k < 4; k++) drawSlot(G.colX(k), G.rowY, ''); for (let s = 0; s < 4; s++) drawSlot(G.colX(4 + s), G.rowY, '', s); }
+    else {
+      if (!g.state.stock.length) drawSlot(G.colX(9), G.rowY, '');
+      // one tray for the runs that left, with a faint mark for each of the 8
+      const step = Math.round((G.cw + G.gap) * 0.62), tw = step * 7 + G.cw, r = Math.max(3, G.cw * 0.08);
+      ART.rr(ctx, G.x0 + 1, G.rowY + 1, tw - 2, G.ch - 2, r); ctx.fillStyle = 'rgba(30,18,8,0.16)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,248,230,0.45)'; ctx.lineWidth = Math.max(1, G.cw * 0.02); ctx.setLineDash([Math.max(3, G.cw * 0.06), Math.max(2, G.cw * 0.05)]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255,248,230,0.30)';
+      for (let k = g.state.runs.length; k < 8; k++) { ctx.beginPath(); ctx.arc(G.x0 + k * step + G.cw / 2, G.rowY + G.ch / 2, Math.max(2, G.cw * 0.07), 0, 7); ctx.fill(); }
+    }
+    for (let i = 0; i < G.ncol; i++) if (!g.state.cols[i].length) drawSlot(G.colX(i), G.colY, '');
+    if (TARGETS) for (const tg of TARGETS) { const r = tg.rect; if (r) glow(r.x, r.y, r.w, r.h, '#ffe08a', 0.85); }
+    const sh = CACHE.shadow, lift = CACHE.lift, cw = G.cw, ch = G.ch;
+    const dragSet = DRAG && DRAG.active ? DRAG.set : null;
+    const later = [];
+    for (const s of ORDER) { if (CASCADE && s.up && s.key[0] !== 'c' && s.key[0] !== 'x') continue; if ((dragSet && dragSet.has(s)) || s.moving) { later.push(s); continue; } paint(s, false); }
+    later.sort((a, b) => (a.t0 + a.delay) - (b.t0 + b.delay) || a.z - b.z);
+    for (const s of later) paint(s, true);
+    function paint(s, lifted) {
+      let x = s.x, y = s.y; if (WOBBLE && WOBBLE.set.has(s)) x += Math.sin((t - WOBBLE.t0) / 28) * 4 * Math.max(0, 1 - (t - WOBBLE.t0) / 320);
+      const sd = lifted ? lift : sh; ctx.drawImage(sd.c, x - sd.pad, y - sd.pad, cw + sd.pad * 2, ch + sd.pad * 2);
+      let up = s.up, sx = 1;
+      if (s.fl && t >= s.fl.t0) { const p = Math.min(1, (t - s.fl.t0) / s.fl.dur); sx = Math.abs(Math.cos(p * Math.PI)); up = p < 0.5 ? s.up : s.fl.to; }
+      const img = up ? CACHE.faces[s.code] : CACHE.back;
+      if (sx < 0.999) ctx.drawImage(img, x + cw * (1 - sx) / 2, y, cw * sx, ch); else ctx.drawImage(img, x, y, cw, ch);
+    }
+    if (HINT && HINT.src) { const a = t - HINT.t0 < 6000 ? 0.55 + 0.45 * Math.sin(t / 180) : 0.9; for (const r of HINT.src) glow(r.x, r.y, r.w, r.h, '#ffc23d', a, true); if (HINT.dst) glow(HINT.dst.x, HINT.dst.y, HINT.dst.w, HINT.dst.h, '#7fe3a0', a, false); }
+    if (FOCUS.on && !CASCADE) { const r = focusRect(); if (r) { ctx.save(); ctx.strokeStyle = '#4fd1ff'; ctx.lineWidth = 3; ctx.setLineDash([6, 4]); ART.rr(ctx, r.x - 3, r.y - 3, r.w + 6, r.h + 6, 8); ctx.stroke(); ctx.restore(); } }
+    if (CASCADE) drawCascade(t);
+  }
+
+  /* ---------- the win cascade: cards drift down like autumn leaves ---------- */
+  function startCascade(done) {
+    const t = now(); const parts = []; const R = E.makeRng(GAME.deal + 7); const src = SPR.filter(s => s.up);
+    src.forEach((s, i) => parts.push({ code: s.code, x0: s.x, y0: s.y, vx: ((R.int(2001) - 1000) / 1000) * W * 0.00016, vy: -(R.int(600) + 300) / 1000 * H * 0.0012, rot: (R.int(2001) - 1000) / 1000 * 0.004, ph: R.int(628) / 100, delay: i * (S().reduced ? 0 : 22) }));
+    CASCADE = { t0: t, parts, dur: S().reduced ? 900 : 3400, done }; ANIM_UNTIL = t + CASCADE.dur + 40; DIRTY = true;
+  }
+  function drawCascade(t) {
+    const c = CASCADE, el = t - c.t0;
+    for (const p of c.parts) {
+      const k = Math.max(0, el - p.delay); if (k <= 0) { ctx.drawImage(CACHE.faces[p.code], p.x0, p.y0, G.cw, G.ch); continue; }
+      const x = p.x0 + p.vx * k + Math.sin(k / 420 + p.ph) * G.cw * 0.6, y = p.y0 + p.vy * k + 0.0000016 * H * k * k;
+      const a = Math.max(0, 1 - k / c.dur * 0.9);
+      ctx.save(); ctx.globalAlpha = a; ctx.translate(x + G.cw / 2, y + G.ch / 2); ctx.rotate(Math.sin(k / 520 + p.ph) * 0.6 + p.rot * k); ctx.drawImage(CACHE.faces[p.code], -G.cw / 2, -G.ch / 2, G.cw, G.ch); ctx.restore();
+    }
+    if (el > c.dur) { const d = c.done; CASCADE = null; DIRTY = true; if (d) d(); }
+  }
+
+  /* ---------- frame loop: redraw only on change ---------- */
+  let lastAmb = 0, PAINTED_INSET = 0;
+  function frame() {
+    const t = now();
+    const busy = stepSprites(t);
+    const pulse = HINT && t - HINT.t0 < 6000; // the hint glow pulses for six seconds, then stays still
+    if (DIRTY || busy || t < ANIM_UNTIL || pulse || CASCADE || (WOBBLE && t - WOBBLE.t0 < 340) || (DRAG && DRAG.active)) { draw(t); DIRTY = false; }
+    if (WOBBLE && t - WOBBLE.t0 >= 340) { WOBBLE = null; DIRTY = true; }
+    if (AMB && !S().reduced && MODE !== 'cover' && t - lastAmb > 33) { lastAmb = t; actx.setTransform(DPR, 0, 0, DPR, 0, 0); actx.clearRect(0, 0, W, H); ART.ambient(actx, AMB, t, false); }
+    if (TITLE_ANIM) drawFan(t);
+    requestAnimationFrame(frame);
+  }
+  function paintTable() {
+    const inset = SCREEN === 'game' ? hudHeights().bottom : 0; PAINTED_INSET = inset;
+    bctx.setTransform(DPR, 0, 0, DPR, 0, 0); AMB = ART.table(bctx, W, H, S().table, inset);
+    actx.setTransform(DPR, 0, 0, DPR, 0, 0); actx.clearRect(0, 0, W, H); ART.ambient(actx, AMB, 0, true);
+    document.body.dataset.table = C.tables[S().table].id;
+  }
+  function resize() {
+    W = Math.max(1, window.innerWidth); H = Math.max(1, window.innerHeight); DPR = Math.min(2, window.devicePixelRatio || 1);
+    for (const c of [bg, amb, cv]) { c.width = Math.round(W * DPR); c.height = Math.round(H * DPR); c.style.width = W + 'px'; c.style.height = H + 'px'; }
+    paintTable();
+    if (GAME) { computeGeom(GAME.kind, true); sync({ dur: 1 }); for (const s of SPR) { s.x = s.tx; s.y = s.ty; s.dur = 0; s.moving = false; } }
+    sizeFan(); DIRTY = true;
+  }
+
+  /* ---------- the game ---------- */
+  let GAME = null, BUSY = false, PAUSED = false, SCREEN = 'title', TIMEACC = 0, LASTTICK = now();
+  const DEALS = new Map();
+  function dealNow() { return 1 + (Date.now() % C.dealMax); }
+  function todayNum(off) { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - (off || 0)); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
+  function dateOf(n) { return new Date(Math.floor(n / 10000), Math.floor(n / 100) % 100 - 1, n % 100, 12); }
+  function fmtDate(n, long) { const d = dateOf(n); return d.toLocaleDateString('en-GB', long ? { weekday: 'long', day: 'numeric', month: 'long' } : { day: 'numeric', month: 'short' }); }
+  function fmtTime(s) { s = s | 0; const m = Math.floor(s / 60), r = s % 60; return m + ':' + (r < 10 ? '0' : '') + r; }
+  function gameName(kind, suits) { return kind === 'fc' ? T.freecell : T.spider + ' · ' + (suits === 1 ? T.suit1 : suits === 2 ? T.suit2 : T.suit4); }
+  function makeDealAsync(kind, suits, deal, cb) {
+    const key = kind + suits + ':' + deal; if (DEALS.has(key)) { cb(DEALS.get(key)); return; }
+    const job = E.makeDealJob(kind, suits, deal, C); const t0 = now(); let shown = false; BUSY = true;
+    const tick = () => {
+      job.step(C.fcSlice);
+      if (job.done) { BUSY = false; $('busy').classList.add('hidden'); DEALS.set(key, job.result); cb(job.result); return; }
+      if (!shown && now() - t0 > 150) { shown = true; $('busy').classList.remove('hidden'); }
+      setTimeout(tick, 0);
+    };
+    tick();
+  }
+  function startGame(kind, suits, deal, daily, opt) {
+    opt = opt || {}; closePanel(true); hideToast();
+    makeDealAsync(kind, suits, deal, info => {
+      let g = null; if (opt.resume) g = E.resume(info, opt.resume);
+      if (!g) g = E.newGame(info, { daily });
+      g.daily = !!daily; GAME = g; HINT = null; TARGETS = null; DRAG = null; CASCADE = null; FOCUS.depth = 0;
+      showScreen('game'); computeGeom(kind, true);
+      SPR = []; const origin = kind === 'sp' ? { x: G.colX(9), y: G.rowY } : { x: W / 2 - G.cw / 2, y: G.rowY - G.ch * 1.2 };
+      const list = slots(); const delays = {}; list.forEach((sl, i) => { delays[sl.code + ':' + sl.key] = opt.resume || opt.instant ? 0 : i * C.anim.deal; });
+      sync({ from: origin, delays, dur: 340 });
+      if (!opt.resume && !opt.instant) sfx('deal');
+      updateHud(); saveCurrent(); if (opt.after) opt.after();
+    });
+  }
+  function saveCurrent() {
+    if (!GAME) return;
+    DATA.current = GAME.over ? null : { kind: GAME.kind, suits: GAME.suits, deal: GAME.deal, daily: GAME.daily, path: GAME.path, redoMoves: GAME.redoMoves, moves: GAME.moves, hints: GAME.hints, time: GAME.time, started: GAME.started };
+    save();
+  }
+  function leaveThen(fn) {
+    if (GAME && GAME.started && !GAME.over) {
+      confirmBox(T.leaveTitle, T.leaveText, T.leave, () => { E.recordResult(DATA, E.statKey(GAME.kind, GAME.suits), false, 0, 0, 0); GAME.over = true; GAME.result = 'lost'; DATA.current = null; save(); fn(); });
+    } else fn();
+  }
+  function newDeal(deal) { if (!GAME) return; const k = GAME.kind, su = GAME.suits; leaveThen(() => startGame(k, su, deal || dealNow(), false)); }
+  function eventsDelays(ev) {
+    const d = {}; let k = 0, base = 0;
+    for (const e of ev) {
+      if (e.t === 'home') { k++; d[e.c] = k * C.anim.autoGap; sfx('place', C.anim.move + k * C.anim.autoGap); }
+      else if (e.t === 'run') { base = C.anim.move + 60; for (let i = 0; i < 13; i++) d[e.cards[12 - i]] = base + i * C.anim.runGap; sfx('chime', base); }
+      else if (e.t === 'deal') { e.cards.forEach((c, i) => { if (d[c] === undefined) d[c] = i * 45; }); }
+      else if (e.t === 'flip') sfx('flip', C.anim.move);
+    }
+    return d;
+  }
+  function doMove(m, opt) {
+    if (!GAME || GAME.over || BUSY || CASCADE) return false;
+    const ev = E.play(GAME, m);
+    if (!ev) { sfx('wobble'); return false; }
+    HINT = null; hideToast();
+    const delays = eventsDelays(ev);
+    sync({ delays, dur: m.deal ? 260 : (opt && opt.dur) || C.anim.move });
+    if (m.deal) sfx('deal'); else { sfx('slide'); sfx('place', C.anim.move * motion()); }
+    updateHud(); saveCurrent();
+    if (GAME.over) win();
+    return true;
+  }
+  function wobble(set) { WOBBLE = { t0: now(), set }; sfx('wobble'); DIRTY = true; }
+  function undo() { if (!GAME || BUSY || CASCADE || GAME.over) return; if (E.undo(GAME)) { HINT = null; hideToast(); sync({ dur: 170 }); sfx('slide'); updateHud(); saveCurrent(); } else wobble(new Set()); }
+  function redo() { if (!GAME || BUSY || CASCADE || GAME.over) return; if (E.redo(GAME)) { HINT = null; hideToast(); sync({ dur: 170 }); sfx('slide'); updateHud(); saveCurrent(); if (GAME.over) win(); } else wobble(new Set()); }
+  function restart() {
+    if (!GAME || BUSY) return;
+    const go = () => { const daily = GAME.daily; const info = GAME.info; GAME = E.newGame(info, { daily }); GAME.daily = daily; HINT = null; CASCADE = null;
+      const origin = GAME.kind === 'sp' ? { x: G.colX(9), y: G.rowY } : { x: W / 2 - G.cw / 2, y: G.rowY - G.ch * 1.2 };
+      SPR = []; const delays = {}; slots().forEach((sl, i) => { delays[sl.code + ':' + sl.key] = i * C.anim.deal; }); sync({ from: origin, delays, dur: 340 }); sfx('deal'); updateHud(); saveCurrent(); };
+    if (GAME.moves > 0 && !GAME.over) confirmBox(T.restart + '?', T.restart + ': ' + gameName(GAME.kind, GAME.suits) + ' · ' + dealLabel(), T.restart, go); else go();
+  }
+  function moveSource(m) { // the cards a move would pick up, as sprite rects
+    const st = GAME.state;
+    if (GAME.kind === 'fc') { const p = E.fcFind(st, m.c); if (!p) return []; if (p.cell >= 0) return [cardRectOfKey('x' + p.cell)].filter(Boolean);
+      const out = []; for (let j = p.idx; j < st.cols[p.col].length; j++) { const r = cardRectOfKey('c' + p.col + ':' + j); if (r) out.push(r); } return out; }
+    if (m.deal) return [{ x: G.colX(9) - Math.round(G.cw * 0.16) * (st.stock.length - 1), y: G.rowY, w: G.cw + Math.round(G.cw * 0.16) * (st.stock.length - 1), h: G.ch }];
+    const out = []; const n = st.cols[m.f].length; for (let j = n - m.n; j < n; j++) { const r = cardRectOfKey('c' + m.f + ':' + j); if (r) out.push(r); } return out;
+  }
+  function moveTargetRect(m) {
+    if (GAME.kind === 'fc') { if (m.t === E.HOME) return { x: G.colX(4 + ((m.c / 13) | 0)), y: G.rowY, w: G.cw, h: G.ch };
+      if (m.t === E.CELL_ANY) { const k = GAME.state.cells.indexOf(-1); return k < 0 ? null : { x: G.colX(k), y: G.rowY, w: G.cw, h: G.ch }; }
+      if (m.t >= 8 && m.t < 12) return { x: G.colX(m.t - 8), y: G.rowY, w: G.cw, h: G.ch }; }
+    if (m.deal) return null;
+    return pileRect(m.t);
+  }
+  function hint() {
+    if (!GAME || GAME.over || BUSY || CASCADE) return;
+    const h = E.hint(GAME);
+    if (!h.move) { HINT = null; toast(T.noMove, [[T.undo, undo]], 6000); sfx('wobble'); return; }
+    GAME.hints++; HINT = { move: h.move, src: moveSource(h.move), dst: moveTargetRect(h.move), t0: now() };
+    if (h.onLine) toast(T.hintLine, null, 3500);
+    else if (h.offLine) toast(T.hintOff, [[T.backToLine, backToLine]], 7000);
+    else toast(T.hintFree, null, 3500);
+    sfx('tick'); updateHud(); saveCurrent(); DIRTY = true;
+  }
+  function backToLine() {
+    if (!GAME) return; let i = GAME.hist.length - 1; let steps = -1;
+    for (; i >= 0; i--) if (GAME.lineMap.has(E.posHash(GAME.kind, GAME.hist[i]))) { steps = GAME.hist.length - i; break; }
+    if (steps < 0) return;
+    for (let k = 0; k < steps; k++) E.undo(GAME);
+    HINT = null; hideToast(); sync({ dur: 240 }); sfx('slide'); updateHud(); saveCurrent();
+  }
+  function win() {
+    const g = GAME; const key = E.statKey(g.kind, g.suits); const sc = E.score(g, C);
+    E.recordResult(DATA, key, true, g.time, g.moves, sc);
+    let daily = null; if (g.daily) daily = E.dailyWin(DATA, g.deal, g.kind, C.albumSize);
+    DATA.current = null; save();
+    HINT = null; FOCUS.on = false;
+    setTimeout(() => sfx('win'), 200);
+    setTimeout(() => startCascade(() => showWin(g, sc, daily)), 380 * motion());
+  }
+  function dealLabel() { return GAME.daily ? T.dailyLabel + ' ' + fmtDate(GAME.deal) : T.dealLabel + ' ' + GAME.deal; }
+  function updateHud() {
+    if (!GAME) return;
+    $('dealName').textContent = gameName(GAME.kind, GAME.suits); $('dealNo').textContent = dealLabel(); $('dealBtn').title = T.typeDeal;
+    const b = $('badge'); b.textContent = GAME.info.proven ? T.proven : T.unproven; b.className = GAME.info.proven ? 'badge ok' : 'badge no'; b.title = GAME.info.proven ? T.provenTip : T.unprovenTip;
+    $('vScore').textContent = E.score(GAME, C); $('vMoves').textContent = GAME.moves; $('vTime').textContent = fmtTime(GAME.time);
+    $('bUndo').disabled = !GAME.hist.length || GAME.over; $('bRedo').disabled = !GAME.redo.length || GAME.over;
+  }
+  setInterval(() => {
+    const t = now(); const dt = t - LASTTICK; LASTTICK = t;
+    if (SCREEN === 'game' && GAME && GAME.started && !GAME.over && !PAUSED && !document.hidden && !BUSY && !panelOpen()) {
+      TIMEACC += dt; let ch = false; while (TIMEACC >= 1000) { TIMEACC -= 1000; GAME.time++; ch = true; }
+      if (ch) { $('vTime').textContent = fmtTime(GAME.time); if (GAME.time % 5 === 0) saveCurrent(); }
+    }
+  }, 250);
+  document.addEventListener('visibilitychange', () => {
+    if (!AU.ctx) return;
+    if (document.hidden) { AU.ctx.suspend(); if (GAME) saveCurrent(); } else AU.ctx.resume();
+  });
+  window.addEventListener('pagehide', () => { if (GAME && !SANDBOX) saveCurrent(); });
+
+  /* ---------- pointer input: tap, click, drag ---------- */
+  function hitCard(x, y) {
+    for (let i = ORDER.length - 1; i >= 0; i--) { const s = ORDER[i]; if (x >= s.tx && x <= s.tx + G.cw && y >= s.ty && y <= s.ty + G.ch) return s; }
+    return null;
+  }
+  function pickFromSprite(s) { // what a press on this card would pick up
+    const st = GAME.state, k = s.key;
+    if (k[0] === 'c') { const [i, j] = k.slice(1).split(':').map(Number); const col = st.cols[i]; const n = col.length - j;
+      if (GAME.kind === 'fc') return n <= E.fcSeqLen(col) ? { kind: 'col', col: i, idx: j, n, card: col[j] } : { kind: 'bad', col: i, idx: j };
+      if (j < st.down[i]) return { kind: 'down' };
+      return n <= E.spRunLen(st, i) ? { kind: 'col', col: i, idx: j, n } : { kind: 'bad', col: i, idx: j }; }
+    if (k[0] === 'x') { const c = Number(k.slice(1)); return { kind: 'cell', cell: c, card: st.cells[c], n: 1 }; }
+    if (k[0] === 's') return { kind: 'stock' };
+    return { kind: 'none' };
+  }
+  function spritesOf(p) { const set = new Set(); if (p.kind === 'col') for (let j = p.idx; j < GAME.state.cols[p.col].length; j++) { const s = SPR.find(q => q.key === 'c' + p.col + ':' + j); if (s) set.add(s); } if (p.kind === 'cell') { const s = SPR.find(q => q.key === 'x' + p.cell); if (s) set.add(s); } return set; }
+  function hintMatches(p) {
+    if (!HINT || !HINT.move) return false; const m = HINT.move;
+    if (GAME.kind === 'fc') return p.card === m.c;
+    return !m.deal && p.kind === 'col' && p.col === m.f && p.n === m.n;
+  }
+  function tapPick(p) {
+    if (p.kind === 'stock') { if (HINT && HINT.move && HINT.move.deal) { doMove({ deal: 1 }); return; } dealStock(); return; }
+    if (p.kind !== 'col' && p.kind !== 'cell') { wobble(p.kind === 'bad' ? spritesOf({ kind: 'col', col: p.col, idx: p.idx }) : new Set()); return; }
+    if (hintMatches(p)) { doMove(HINT.move); return; }
+    const m = E.tapTarget(GAME, GAME.kind === 'fc' ? { card: p.card } : { col: p.col, n: p.n });
+    if (!m || !doMove(m)) wobble(spritesOf(p));
+  }
+  function dealStock() {
+    if (!GAME || GAME.kind !== 'sp') return;
+    if (!GAME.state.stock.length) { toast(T.noStock, null, 2500); wobble(new Set()); return; }
+    if (!E.spCanDeal(GAME.state)) { toast(T.noDeal, null, 3000); wobble(new Set(SPR.filter(s => s.key[0] === 's'))); return; }
+    doMove({ deal: 1 });
+  }
+  function legalTargets(p) {
+    const out = []; const st = GAME.state;
+    if (GAME.kind === 'fc') {
+      const c = p.card;
+      if (E.fcCheck(st, { c, t: E.HOME })) out.push({ m: { c, t: E.HOME }, rect: { x: G.colX(4 + ((c / 13) | 0)), y: G.rowY, w: G.cw, h: G.ch } });
+      for (let t = 0; t < 8; t++) if (E.fcCheck(st, { c, t })) out.push({ m: { c, t }, rect: pileRect(t) });
+      if (p.kind === 'col') for (let k = 0; k < 4; k++) if (E.fcCheck(st, { c, t: 8 + k })) out.push({ m: { c, t: 8 + k }, rect: { x: G.colX(k), y: G.rowY, w: G.cw, h: G.ch } });
+    } else for (let t = 0; t < 10; t++) if (E.spCheck(st, { f: p.col, n: p.n, t })) out.push({ m: { f: p.col, n: p.n, t }, rect: pileRect(t) });
+    return out;
+  }
+  cv.addEventListener('pointerdown', e => {
+    if (SCREEN !== 'game' || !GAME || BUSY || CASCADE || panelOpen()) return;
+    FOCUS.on = false; DIRTY = true;
+    const x = e.clientX, y = e.clientY; const s = hitCard(x, y);
+    if (!s) { if (GAME.kind === 'sp' && x >= G.colX(9) - G.cw && x <= G.colX(9) + G.cw && y >= G.rowY && y <= G.rowY + G.ch) tapPick({ kind: 'stock' }); return; }
+    const p = pickFromSprite(s);
+    if (GAME.over) return;
+    DRAG = { p, x0: x, y0: y, sx: s.tx, sy: s.ty, active: false, set: spritesOf(p), id: e.pointerId, t0: now() };
+    try { cv.setPointerCapture(e.pointerId); } catch (er) { /* fine */ }
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!DRAG || e.pointerId !== DRAG.id) return;
+    const dx = e.clientX - DRAG.x0, dy = e.clientY - DRAG.y0;
+    if (!DRAG.active) {
+      if (dx * dx + dy * dy < 49 || (DRAG.p.kind !== 'col' && DRAG.p.kind !== 'cell')) return;
+      DRAG.active = true; DRAG.targets = legalTargets(DRAG.p); TARGETS = DRAG.targets; HINT = HINT && hintMatches(DRAG.p) ? HINT : null;
+      DRAG.base = [...DRAG.set].map(s => ({ s, x: s.x, y: s.y })); sfx('slide');
+    }
+    for (const b of DRAG.base) { b.s.x = b.x + dx; b.s.y = b.y + dy; b.s.dur = 0; }
+    DIRTY = true;
+  });
+  function endDrag(e, cancel) {
+    if (!DRAG || (e && e.pointerId !== DRAG.id)) return;
+    const d = DRAG; DRAG = null; TARGETS = null; DIRTY = true;
+    if (!d.active) { if (!cancel) tapPick(d.p); return; }
+    // pick the legal target the dragged card overlaps most, else the one under the finger
+    const top = d.base[0].s; const rx = top.x, ry = top.y; let best = null, ba = 0;
+    for (const tg of d.targets) { const r = tg.rect; if (!r) continue; const ox = Math.min(rx + G.cw, r.x + r.w) - Math.max(rx, r.x), oy = Math.min(ry + G.ch, r.y + r.h + (r.y >= G.colY ? G.ch : 0)) - Math.max(ry, r.y);
+      if (ox > 0 && oy > 0 && ox * oy > ba) { ba = ox * oy; best = tg; } }
+    if (!best && e) for (const tg of d.targets) { const r = tg.rect; if (r && e.clientX >= r.x && e.clientX <= r.x + r.w && e.clientY >= r.y - 10 && e.clientY <= (r.y >= G.colY ? G.bottom : r.y + r.h)) best = tg; }
+    if (!cancel && best && doMove(best.m, { dur: 140 })) return;
+    sync({ dur: 220 }); sfx('place', 180);
+  }
+  cv.addEventListener('pointerup', e => endDrag(e, false));
+  cv.addEventListener('pointercancel', e => endDrag(e, true));
+
+  /* ---------- keyboard ---------- */
+  function rowPiles(row) { if (row === 0) return GAME.kind === 'fc' ? [0, 1, 2, 3, 4, 5, 6, 7] : [9]; return Array.from({ length: G.ncol }, (_, i) => i); }
+  function faceUpCount(i) { const st = GAME.state; const n = st.cols[i].length; return GAME.kind === 'fc' ? n : n - st.down[i]; }
+  function focusRect() {
+    if (!GAME || !G) return null; const st = GAME.state;
+    if (FOCUS.row === 0) { if (GAME.kind === 'sp') return { x: G.colX(9) - Math.round(G.cw * 0.16) * Math.max(0, st.stock.length - 1), y: G.rowY, w: G.cw + Math.round(G.cw * 0.16) * Math.max(0, st.stock.length - 1), h: G.ch };
+      return { x: G.colX(FOCUS.idx), y: G.rowY, w: G.cw, h: G.ch }; }
+    const i = FOCUS.idx, col = st.cols[i]; if (!col.length) return { x: G.colX(i), y: G.colY, w: G.cw, h: G.ch };
+    const j = Math.max(0, col.length - 1 - FOCUS.depth); const a = SPR.find(q => q.key === 'c' + i + ':' + j), b = SPR.find(q => q.key === 'c' + i + ':' + (col.length - 1));
+    if (!a || !b) return null; return { x: a.tx, y: a.ty, w: G.cw, h: b.ty - a.ty + G.ch };
+  }
+  function focusPick() {
+    const st = GAME.state;
+    if (FOCUS.row === 0) { if (GAME.kind === 'sp') return { kind: 'stock' }; if (FOCUS.idx < 4) return st.cells[FOCUS.idx] >= 0 ? { kind: 'cell', cell: FOCUS.idx, card: st.cells[FOCUS.idx], n: 1 } : { kind: 'none' }; return { kind: 'none' }; }
+    const i = FOCUS.idx, col = st.cols[i]; if (!col.length) return { kind: 'none' };
+    const j = col.length - 1 - FOCUS.depth; const s = SPR.find(q => q.key === 'c' + i + ':' + j); return s ? pickFromSprite(s) : { kind: 'none' };
+  }
+  function clampFocus() { if (FOCUS.row === 1) { const n = faceUpCount(FOCUS.idx); if (FOCUS.depth > Math.max(0, n - 1)) FOCUS.depth = Math.max(0, n - 1); } }
+  window.addEventListener('keydown', e => {
+    if (MODE === 'tour') return;
+    const k = e.key; const typing = e.target && (e.target.tagName === 'INPUT');
+    if (typing) { if (k === 'Escape') closePanel(); return; }
+    const onBtn = e.target && e.target.closest && e.target.closest('button, label');
+    if (onBtn && (k === 'Enter' || k === ' ')) return; // a focused button or switch acts on its own
+    if (k === 'Escape') { e.preventDefault(); if (panelOpen()) { if (!PANEL_LOCK) closePanel(); } else if (SCREEN === 'game') pauseMenu(); return; }
+    if (k === 'm' || k === 'M') { S().muted = !S().muted; applyVolumes(); save(); toast(S().muted ? T.muted : T.unmuted, null, 1500); return; }
+    if (SCREEN !== 'game' || panelOpen() || !GAME || BUSY || CASCADE) return;
+    if ((e.ctrlKey || e.metaKey) && (k === 'z' || k === 'Z')) { e.preventDefault(); undo(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (k === 'u' || k === 'U') { undo(); return; }
+    if (k === 'y' || k === 'Y') { redo(); return; }
+    if (k === 'h' || k === 'H') { hint(); return; }
+    if (k === 'd' || k === 'D') { if (GAME.kind === 'sp') dealStock(); return; }
+    if (k === 'n' || k === 'N') { newDeal(); return; }
+    if (k.startsWith('Arrow')) {
+      e.preventDefault(); if (onBtn) { onBtn.blur(); try { cv.focus({ preventScroll: true }); } catch (er) {} }
+      if (!FOCUS.on) { FOCUS.on = true; DIRTY = true; return; }
+      const piles = rowPiles(FOCUS.row);
+      if (k === 'ArrowLeft' || k === 'ArrowRight') { const d = k === 'ArrowLeft' ? -1 : 1; let p = piles.indexOf(FOCUS.idx); if (p < 0) p = 0; FOCUS.idx = piles[(p + d + piles.length) % piles.length]; FOCUS.depth = 0; }
+      else if (k === 'ArrowUp') { if (FOCUS.row === 1 && FOCUS.depth < faceUpCount(FOCUS.idx) - 1) FOCUS.depth++; else if (FOCUS.row === 1) { FOCUS.row = 0; FOCUS.depth = 0; if (GAME.kind === 'sp') FOCUS.idx = 9; } }
+      else if (k === 'ArrowDown') { if (FOCUS.row === 0) { FOCUS.row = 1; FOCUS.depth = 0; } else if (FOCUS.depth > 0) FOCUS.depth--; }
+      clampFocus(); DIRTY = true; return;
+    }
+    if (k === 'Enter' || k === ' ') { e.preventDefault(); if (!FOCUS.on) { FOCUS.on = true; DIRTY = true; return; } clampFocus(); const p = focusPick(); tapPick(p); FOCUS.depth = 0; clampFocus(); DIRTY = true; }
+  });
+
+  /* ---------- screens and panels ---------- */
+  let TITLE_ANIM = false, PANEL_LOCK = false, PANEL_ON_CLOSE = null;
+  function showScreen(name) {
+    SCREEN = name; $('title').classList.toggle('hidden', name !== 'title'); hud.classList.toggle('off', name !== 'game');
+    if (name === 'title') { buildMenu(); sizeFan(); TITLE_ANIM = true; FAN.t0 = now(); }
+    else TITLE_ANIM = false;
+    if (name !== 'game') { DIRTY = true; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H); }
+    if ((name === 'game' ? hudHeights().bottom : 0) !== PAINTED_INSET) paintTable();
+    DIRTY = true;
+  }
+  function panelOpen() { return !$('panelWrap').classList.contains('hidden'); }
+  function openPanel(html, cls, onClose) {
+    const p = $('panel'); p.className = 'panel ' + (cls || ''); p.innerHTML = html; $('panelWrap').classList.remove('hidden'); PANEL_ON_CLOSE = onClose || null; PAUSED = true;
+    const f = p.querySelector('[data-focus]') || p.querySelector('button'); if (f) setTimeout(() => { try { f.focus({ preventScroll: true }); } catch (e) {} }, 0);
+    p.scrollTop = 0; return p;
+  }
+  function closePanel(silent) { if (!panelOpen()) return; $('panelWrap').classList.add('hidden'); PAUSED = false; PANEL_LOCK = false; const f = PANEL_ON_CLOSE; PANEL_ON_CLOSE = null; if (f && !silent) f(); LASTTICK = now(); }
+  $('panelWrap').addEventListener('pointerdown', e => { if (e.target === $('panelWrap') && !PANEL_LOCK) closePanel(); });
+  function btn(label, act, cls, extra) { return '<button class="btn ' + (cls || '') + '" data-act="' + act + '"' + (extra || '') + '>' + label + '</button>'; }
+  const ACTIONS = {};
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-act]'); if (!b) return; const f = ACTIONS[b.dataset.act]; if (f) { e.preventDefault(); f(b); } });
+  function confirmBox(title, text, yes, fn) {
+    openPanel('<h2>' + esc(title) + '</h2><p>' + esc(text) + '</p><div class="row end">' + btn(esc(T.no), 'cNo', 'ghost', ' data-focus') + btn(esc(yes), 'cYes', 'warn') + '</div>', 'small');
+    ACTIONS.cNo = () => closePanel(); ACTIONS.cYes = () => { closePanel(true); fn(); };
+  }
+  function pauseMenu() {
+    if (!GAME) return;
+    openPanel('<h2>' + esc(T.paused) + '</h2><p class="muted">' + esc(gameName(GAME.kind, GAME.suits) + ' · ' + dealLabel()) + '</p><div class="col">' + btn(esc(T.resumeGame), 'pResume', 'primary', ' data-focus') + btn(esc(T.restart), 'pRestart') + btn(esc(T.newDeal), 'pNew') + btn(esc(T.menu), 'pMenu', 'ghost') + '</div>', 'small');
+    ACTIONS.pResume = () => closePanel(); ACTIONS.pRestart = () => { closePanel(true); restart(); }; ACTIONS.pNew = () => { closePanel(true); newDeal(); }; ACTIONS.pMenu = () => { closePanel(true); toTitle(); };
+  }
+  function toTitle() { HINT = null; hideToast(); showScreen('title'); }
+  function showWin(g, sc, daily) {
+    const st = DATA.stats[E.statKey(g.kind, g.suits)] || E.blankStat();
+    let extra = '';
+    if (daily) { const bits = DATA.daily[g.deal] | 0; extra += '<div class="stampRow">' + stampSvg(bits, 64) + '<p>' + esc(bits === 3 ? T.pairDone : T.halfStamp) + '</p></div>';
+      if (daily.back) extra += '<div class="newBack"><canvas class="thumb" data-back="' + (daily.back - 1) + '"></canvas><p><b>' + esc(T.newBack) + '</b> ' + esc(C.backs[daily.back - 1]) + '</p>' + btn(esc(T.use), 'useNew', 'primary') + '</div>';
+      if (daily.star) extra += '<p class="star">★ ' + esc(T.starEarned) + '</p>'; }
+    const p = openPanel('<h2>' + esc(T.won) + '</h2><p class="muted">' + esc(gameName(g.kind, g.suits)) + ' · ' + esc(g.daily ? T.dailyLabel + ' ' + fmtDate(g.deal) : T.dealLabel + ' ' + g.deal) + '</p>' +
+      '<div class="tiles"><div><span>' + esc(T.score) + '</span><b>' + sc + '</b></div><div><span>' + esc(T.moves) + '</span><b>' + g.moves + '</b></div><div><span>' + esc(T.time) + '</span><b>' + fmtTime(g.time) + '</b></div><div><span>' + esc(T.bestScore) + '</span><b>' + st.bestScore + '</b></div></div>' + extra +
+      '<div class="row end">' + (g.daily ? btn(esc(T.toCalendar), 'wCal', 'ghost') : '') + btn(esc(T.menu), 'wMenu', 'ghost') + (g.daily ? '' : btn(esc(T.again), 'wNext', 'primary', ' data-focus')) + '</div>', 'small win');
+    paintThumbs(p); if (daily && (DATA.daily[g.deal] | 0)) setTimeout(() => sfx('stamp'), 250);
+    ACTIONS.useNew = () => { DATA.back = daily.back; save(); CACHE.key = ''; computeGeom(GAME.kind); DIRTY = true; closePanel(true); showWin(g, sc, null); };
+    ACTIONS.wMenu = () => { closePanel(true); toTitle(); }; ACTIONS.wNext = () => { closePanel(true); startGame(g.kind, g.suits, dealNow(), false); }; ACTIONS.wCal = () => { closePanel(true); toTitle(); dailyPanel(); };
+  }
+  function stampSvg(bits, size) {
+    const full = bits === 3, half = bits === 1 || bits === 2, s = size || 44;
+    const perf = []; for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; perf.push('<circle cx="' + (50 + Math.cos(a) * 46).toFixed(1) + '" cy="' + (50 + Math.sin(a) * 46).toFixed(1) + '" r="3.2" fill="var(--paper)"/>'); }
+    const kettle = '<g transform="translate(50 54) scale(0.9)" fill="#fbf3e0"><path d="M-20 14 Q-24 -6 -10 -11 L10 -11 Q24 -6 20 14 Z"/><path d="M16 3 Q30 1 34 -12 L29 -12 Q25 -3 17 8 Z"/><path d="M-14 -12 A15 15 0 0 1 14 -12" stroke="#fbf3e0" stroke-width="3.5" fill="none"/><rect x="-22" y="13" width="44" height="4" rx="2"/></g>';
+    let body;
+    if (full) body = '<circle cx="50" cy="50" r="44" fill="#b5532c"/><circle cx="50" cy="50" r="36" fill="none" stroke="#fbf3e0" stroke-width="2" stroke-dasharray="4 3"/>' + kettle;
+    else if (half) body = '<circle cx="50" cy="50" r="44" fill="rgba(181,83,44,0.12)"/><path d="M50 6 A44 44 0 0 0 50 94 Z" fill="#b5532c"/><circle cx="50" cy="50" r="36" fill="none" stroke="#b5532c" stroke-width="2" stroke-dasharray="4 3"/>';
+    else body = '<circle cx="50" cy="50" r="40" fill="none" stroke="rgba(90,60,40,0.35)" stroke-width="2.5" stroke-dasharray="5 5"/>';
+    return '<svg class="stamp" width="' + s + '" height="' + s + '" viewBox="0 0 100 100" aria-hidden="true">' + body + (full || half ? perf.join('') : '') + '</svg>';
+  }
+  function dailyPanel(sel) {
+    const days = []; for (let i = C.calendarDays - 1; i >= 0; i--) days.push(todayNum(i));
+    const today = todayNum(0); sel = sel || today;
+    let grid = '<div class="cal">';
+    for (const d of days) { const bits = DATA.daily[d] | 0; grid += '<button class="day' + (d === sel ? ' sel' : '') + (d === today ? ' today' : '') + '" data-act="day" data-day="' + d + '"' + (d === sel ? ' data-focus' : '') + '><span>' + esc(fmtDate(d)) + '</span>' + stampSvg(bits, 40) + '</button>'; }
+    grid += '</div>';
+    const bits = DATA.daily[sel] | 0;
+    const row = (kind, bit) => '<button class="btn wide" data-act="playDaily" data-kind="' + kind + '" data-day="' + sel + '">' + esc(kind === 'fc' ? T.freecell : T.spider + ' · ' + T.suit2) + ' <em>' + esc(bits & bit ? '✓ ' + T.wonMark : T.notYet) + '</em></button>';
+    openPanel('<h2>' + esc(T.dailyTitle) + '</h2><p class="muted">' + esc(T.dailyText) + '</p>' + grid + '<h3>' + esc(sel === today ? T.today + ' · ' + fmtDate(sel, true) : fmtDate(sel, true)) + '</h3><div class="col">' + row('fc', 1) + row('sp', 2) + '</div><div class="row end">' + btn(esc(T.close), 'close', 'ghost') + '</div>', 'wide');
+    ACTIONS.day = b => dailyPanel(Number(b.dataset.day));
+    ACTIONS.playDaily = b => { const kind = b.dataset.kind, day = Number(b.dataset.day); closePanel(true);
+      if (GAME && !GAME.over && GAME.daily && GAME.deal === day && GAME.kind === kind) { showScreen('game'); computeGeom(GAME.kind); sync({ dur: 1 }); updateHud(); return; }
+      leaveThen(() => startGame(kind, kind === 'fc' ? 4 : C.dailySuits, day, true)); };
+  }
+  function paintThumbs(root) {
+    root.querySelectorAll('canvas.thumb').forEach(c => { const w = c.clientWidth || 72, h = Math.round(w * 1.4); const d = Math.min(2, window.devicePixelRatio || 1);
+      c.width = Math.round(w * d); c.height = Math.round(h * d); c.style.height = h + 'px'; const x = c.getContext('2d'); x.scale(d, d); ART.paintBack(x, Number(c.dataset.back), w, h); });
+  }
+  function albumPanel(glowIdx) {
+    let h = '<h2>' + esc(T.album) + '</h2><p class="muted">' + esc(T.albumText) + '</p><div class="album">';
+    C.backs.forEach((name, i) => { const n = i + 1, open = n <= DATA.unlocked;
+      h += '<div class="bk' + (open ? '' : ' locked') + (n === DATA.back ? ' inuse' : '') + (glowIdx === n ? ' fresh' : '') + '"><canvas class="thumb" data-back="' + i + '"></canvas><b>' + esc(name) + '</b>' +
+        (open ? (n === DATA.back ? '<span class="tag">' + esc(T.inUse) + '</span>' : btn(esc(T.use), 'useBack', 'mini', ' data-n="' + n + '"')) : '<span class="tag lock">🔒 ' + esc(T.locked) + '</span>') + '</div>'; });
+    h += '</div><p class="muted">' + esc(T.stars) + ': ' + DATA.stars + '</p><div class="row end">' + btn(esc(T.close), 'close', 'ghost') + '</div>';
+    const p = openPanel(h, 'wide'); paintThumbs(p);
+    ACTIONS.useBack = b => { DATA.back = Number(b.dataset.n); save(); CACHE.key = ''; if (GAME && G) computeGeom(GAME.kind); DIRTY = true; albumPanel(); };
+  }
+  function statsPanel() {
+    const rows = [['fc', T.freecell], ['sp1', T.spider + ' · ' + T.suit1], ['sp2', T.spider + ' · ' + T.suit2], ['sp4', T.spider + ' · ' + T.suit4]];
+    let h = '<h2>' + esc(T.stats) + '</h2><div class="stats">';
+    for (const [k, name] of rows) { const s = DATA.stats[k] || E.blankStat();
+      const v = [[T.played, s.played], [T.wins, s.won], [T.rate, E.winRate(s) + '%'], [T.streak, s.cur], [T.bestStreak, s.best], [T.bestTime, s.bestTime ? fmtTime(s.bestTime) : '–'], [T.fewest, s.fewest || '–'], [T.bestScore, s.bestScore || '–']];
+      h += '<section><h3>' + esc(name) + '</h3><dl>' + v.map(([a, b]) => '<div><dt>' + esc(a) + '</dt><dd>' + esc(b) + '</dd></div>').join('') + '</dl></section>'; }
+    h += '</div><div class="row end">' + btn(esc(T.close), 'close', 'ghost') + '</div>';
+    openPanel(h, 'wide');
+  }
+  function settingsPanel() {
+    const s = S(); const tog = (k, label) => '<label class="tog"><span>' + esc(label) + '</span><input type="checkbox" data-set="' + k + '"' + (s[k] ? ' checked' : '') + '><i></i></label>';
+    let h = '<h2>' + esc(T.settings) + '</h2>' +
+      '<label class="sl"><span>' + esc(T.music) + '</span><input type="range" min="0" max="100" step="5" value="' + s.music + '" data-vol="music"></label>' +
+      '<label class="sl"><span>' + esc(T.effects) + '</span><input type="range" min="0" max="100" step="5" value="' + s.effects + '" data-vol="effects"></label>' +
+      '<h3>' + esc(T.table) + '</h3><div class="row wrap">' + C.tables.map((t, i) => '<button class="btn chip tb' + i + (s.table === i ? ' on' : '') + '" data-act="setTable" data-i="' + i + '">' + esc(t.name) + '</button>').join('') + '</div>' +
+      '<h3>' + esc(T.cardBack) + '</h3><div class="row wrap backs">' + C.backs.slice(0, DATA.unlocked).map((n, i) => '<button class="bkpick' + (DATA.back === i + 1 ? ' on' : '') + '" data-act="setBack" data-n="' + (i + 1) + '" title="' + esc(n) + '" aria-label="' + esc(n) + '"><canvas class="thumb" data-back="' + i + '"></canvas></button>').join('') + '</div>' +
+      tog('four', T.fourColour) + tog('large', T.largePrint) + tog('reduced', T.reducedMotion) +
+      '<div class="row between">' + btn(esc(T.deleteProgress), 'del', 'warn ghost') + btn(esc(T.close), 'close', 'primary') + '</div>';
+    const p = openPanel(h, 'wide'); paintThumbs(p);
+    p.querySelectorAll('[data-vol]').forEach(r => r.addEventListener('input', () => { S()[r.dataset.vol] = Number(r.value); applyVolumes(); save(); }));
+    p.querySelectorAll('[data-set]').forEach(c => c.addEventListener('change', () => { S()[c.dataset.set] = c.checked; save(); CACHE.key = ''; if (GAME && G) { computeGeom(GAME.kind); sync({ dur: 1 }); } sizeFan(); DIRTY = true; if (c.dataset.set === 'reduced') { actx.clearRect(0, 0, W, H); ART.ambient(actx, AMB, 0, true); } }));
+    ACTIONS.setTable = b => { S().table = Number(b.dataset.i); save(); paintTable(); musicFor(S().table); settingsPanel(); };
+    ACTIONS.setBack = b => { DATA.back = Number(b.dataset.n); save(); CACHE.key = ''; if (GAME && G) computeGeom(GAME.kind); sizeFan(); DIRTY = true; settingsPanel(); };
+    ACTIONS.del = () => confirmBox(T.deleteTitle, T.deleteText, T.deleteYes, () => {
+      const keep = DATA.settings; DATA = E.blankData(); DATA.settings = keep; save(); GAME = null; SPR = []; CACHE.key = ''; toTitle(); toast(T.deleted, null, 2500); });
+  }
+  function howtoPanel() {
+    openPanel('<h2>' + esc(T.howto) + '</h2>' + T.howtoBody.map(([a, b]) => '<h3>' + esc(a) + '</h3><p>' + esc(b) + '</p>').join('') + '<div class="row end">' + btn(esc(T.close), 'close', 'primary', ' data-focus') + '</div>', 'wide');
+  }
+  ACTIONS.close = () => closePanel();
+
+  /* ---------- deal number box ---------- */
+  function dealBox() {
+    if (!GAME) return;
+    openPanel('<h2>' + esc(gameName(GAME.kind, GAME.suits)) + '</h2><p class="muted">' + esc(T.typeDeal) + '</p><div class="row"><input id="dealNum" type="number" inputmode="numeric" min="1" max="' + C.dealMax + '" value="' + (GAME.daily ? '' : GAME.deal) + '" aria-label="' + esc(T.typeDeal) + '">' + btn(esc(T.go), 'dealGo', 'primary') + '</div>' +
+      '<p class="muted small">' + esc(GAME.info.proven ? T.provenTip : T.unprovenTip) + '</p><div class="row end">' + btn(esc(T.close), 'close', 'ghost') + '</div>', 'small');
+    const inp = $('dealNum'); setTimeout(() => { inp.focus(); inp.select(); }, 0);
+    const go = () => { const v = Math.floor(Number(inp.value)); if (!(v >= 1 && v <= C.dealMax)) { inp.classList.add('err'); return; } closePanel(true); newDeal(v); };
+    ACTIONS.dealGo = go; inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+  }
+
+  /* ---------- title screen with a fan of cards ---------- */
+  const FAN = { t0: 0, cv: $('fan') };
+  function sizeFan() {
+    const c = FAN.cv; const r = c.getBoundingClientRect(); const w = Math.max(10, r.width), h = Math.max(10, r.height);
+    c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); FAN.w = w; FAN.h = h;
+    const ch = Math.min((h - 12) / 1.2, w * 0.36), cw = Math.round(ch / 1.4);
+    if (cw < 12) { FAN.cards = null; return; }
+    const opt = { dpr: DPR, four: S().four, large: false };
+    FAN.cards = [12, 11 + 13, 10 + 39, 0 + 26, 9 + 13].map(c2 => ART.face(c2, cw, Math.round(cw * 1.4), opt)); FAN.back = ART.back(DATA.back - 1, cw, Math.round(cw * 1.4), DPR); FAN.cw = cw; FAN.ch = Math.round(cw * 1.4);
+    drawFan(now() + 100000);
+  }
+  function drawFan(t) {
+    const c = FAN.cv, x = c.getContext('2d'); if (!FAN.cards) return;
+    const p = S().reduced || MODE === 'cover' ? 1 : Math.min(1, (t - FAN.t0) / 900); const e = ease(p);
+    x.setTransform(DPR, 0, 0, DPR, 0, 0); x.clearRect(0, 0, FAN.w, FAN.h);
+    const n = 6, cx = FAN.w / 2, cy = FAN.h - 6 - FAN.ch * 0.07;
+    for (let i = 0; i < n; i++) { const a = (i - (n - 1) / 2) * 0.2 * e;
+      x.save(); x.translate(cx, cy); x.rotate(a); x.translate(0, -FAN.ch * 0.62);
+      x.shadowColor = 'rgba(30,15,0,0.35)'; x.shadowBlur = 10; x.shadowOffsetY = 4;
+      x.drawImage(i === 0 ? FAN.back : FAN.cards[i - 1], -FAN.cw / 2, -FAN.ch / 2, FAN.cw, FAN.ch); x.restore(); }
+    if (p >= 1) TITLE_ANIM = false;
+  }
+  function buildMenu() {
+    const m = $('menu'); const g = GAME && !GAME.over && GAME.started;
+    m.innerHTML = (g ? btn(esc(T.resume) + ' · <small>' + esc(gameName(GAME.kind, GAME.suits)) + '</small>', 'mResume', 'primary big') : '') +
+      btn(esc(T.freecell), 'mFC', 'big' + (g ? '' : ' primary')) +
+      '<div class="split"><span>' + esc(T.spider) + '</span>' + btn(esc(T.suit1), 'mSP', '', ' data-s="1"') + btn(esc(T.suit2), 'mSP', '', ' data-s="2"') + btn(esc(T.suit4), 'mSP', '', ' data-s="4"') + '</div>' +
+      btn('<span class="dot"></span>' + esc(T.daily), 'mDaily', 'big daily') +
+      '<div class="pair">' + btn(esc(T.album), 'mAlbum') + btn(esc(T.stats), 'mStats') + '</div>' +
+      '<div class="pair">' + btn(esc(T.settings), 'mSettings') + btn(esc(T.howto), 'mHow') + '</div>';
+  }
+  function playMode(kind, suits) {
+    if (GAME && !GAME.over && !GAME.daily && GAME.kind === kind && GAME.suits === suits) { showScreen('game'); computeGeom(kind); sync({ dur: 1 }); updateHud(); return; }
+    leaveThen(() => startGame(kind, suits, dealNow(), false));
+  }
+  ACTIONS.mResume = () => { showScreen('game'); computeGeom(GAME.kind); sync({ dur: 1 }); updateHud(); };
+  ACTIONS.mFC = () => playMode('fc', 4); ACTIONS.mSP = b => playMode('sp', Number(b.dataset.s));
+  ACTIONS.mDaily = () => dailyPanel(); ACTIONS.mAlbum = () => albumPanel(); ACTIONS.mStats = () => statsPanel(); ACTIONS.mSettings = () => settingsPanel(); ACTIONS.mHow = () => howtoPanel();
+
+  /* ---------- toast ---------- */
+  let TOAST_T = 0;
+  function toast(text, actions, ms) {
+    const el = $('toast'); el.innerHTML = '<span>' + esc(text) + '</span>' + (actions || []).map((a, i) => '<button class="btn mini" data-act="toast' + i + '">' + esc(a[0]) + '</button>').join('');
+    (actions || []).forEach((a, i) => { ACTIONS['toast' + i] = () => { hideToast(); a[1](); }; });
+    el.style.top = ''; el.style.bottom = ''; el.classList.remove('hidden'); clearTimeout(TOAST_T); TOAST_T = setTimeout(hideToast, ms || 3000);
+    if (HINT && SCREEN === 'game') { // a toast never covers the cards a hint points at: it moves under the top bar when it would
+      const rects = (HINT.src || []).concat(HINT.dst ? [HINT.dst] : []);
+      const hits = () => { const b = el.getBoundingClientRect(); return rects.some(r => r.x < b.right + 6 && r.x + r.w > b.left - 6 && r.y < b.bottom + 6 && r.y + r.h > b.top - 6); };
+      if (hits()) { el.style.bottom = 'auto'; el.style.top = (hud.offsetHeight + 8) + 'px'; if (hits()) { el.style.top = ''; el.style.bottom = ''; } }
+    }
+  }
+  function hideToast() { $('toast').classList.add('hidden'); }
+
+  /* ---------- toolbar ---------- */
+  $('bMenu').addEventListener('click', () => { if (SCREEN === 'game') pauseMenu(); });
+  $('dealBtn').addEventListener('click', dealBox);
+  $('bNew').addEventListener('click', () => newDeal());
+  $('bRestart').addEventListener('click', restart);
+  $('bHint').addEventListener('click', hint);
+  $('bUndo').addEventListener('click', undo);
+  $('bRedo').addEventListener('click', redo);
+  function labels() {
+    const set = (id, txt) => { const b = $(id); b.querySelector('span').textContent = txt; b.setAttribute('aria-label', txt); b.title = txt; };
+    set('bNew', T.newDeal); set('bRestart', T.restart); set('bHint', T.hint); set('bUndo', T.undo); set('bRedo', T.redo);
+    $('bMenu').setAttribute('aria-label', T.pause); $('bMenu').title = T.pause + ' (Esc)';
+    $('lScore').textContent = T.score; $('lMoves').textContent = T.moves; $('lTime').textContent = T.time;
+    $('gameName').textContent = C.name; $('tagline').textContent = T.tagline; $('busyText').textContent = T.making; document.title = C.name;
+  }
+
+  /* ---------- test hooks (read-only views for automated checks) ---------- */
+  window.KP = {
+    mode: MODE, game: () => GAME, data: () => DATA, screen: () => SCREEN, busy: () => BUSY || !!CASCADE || now() < ANIM_UNTIL, hint: () => (GAME ? E.hint(GAME) : null),
+    rect: key => { const s = SPR.find(q => q.key === key); return s ? { x: s.tx, y: s.ty, w: G.cw, h: G.ch } : null; },
+    pile: t => pileRect(t), geom: () => G, focus: () => Object.assign({}, FOCUS), keyOf: m => {
+      if (!GAME) return null; const st = GAME.state;
+      if (GAME.kind === 'fc') { const p = E.fcFind(st, m.c); return p.cell >= 0 ? 'x' + p.cell : 'c' + p.col + ':' + p.idx; }
+      if (m.deal) return 'stock'; return 'c' + m.f + ':' + (st.cols[m.f].length - m.n); },
+    target: m => (GAME ? moveTargetRect(m) : null), stock: () => (G ? { x: G.colX(9), y: G.rowY, w: G.cw, h: G.ch } : null),
+    cards: () => SPR.map(s => ({ key: s.key, x: s.tx, y: s.ty, w: G.cw, h: G.ch, up: s.up })),
+    audio: () => ({ state: AU.ctx ? AU.ctx.state : 'none', loops: Object.keys(AU.loops), playing: !!AU.src, peak: Object.keys(AU.loops).map(k => { const d = AU.loops[k].getChannelData(0); let m = 0; for (let i = 0; i < d.length; i += 7) { const v = Math.abs(d[i]); if (v > m) m = v; } return Math.round(m * 1000); }) }), area: () => (G ? { bottom: G.bottom, colY: G.colY, cw: G.cw, ch: G.ch } : null)
+  };
+  // ?test=1 only: jump along the stored line so long columns can be checked quickly
+  if (Q.get('test') === '1') window.KP.ff = n => { for (let i = 0; i < n && GAME && GAME.info.line; i++) { const k = E.lineIndex(GAME); if (k < 0 || k >= GAME.info.line.length) break; E.play(GAME, GAME.info.line[k]); } sync({ dur: 1 }); for (const s of SPR) { s.x = s.tx; s.y = s.ty; s.dur = 0; s.moving = false; } updateHud(); saveCurrent(); DIRTY = true; return GAME.moves; };
+
+  /* ---------- tour and cover ---------- */
+  function runTour() {
+    const steps = []; const at = (s, f) => steps.push([s * 1000, f]); let ended = false; const t0 = now();
+    const end = () => { if (ended) return; ended = true; location.replace(location.pathname); };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, e => { if (e.isTrusted) end(); }, { capture: true }));
+    const playLine = (count, gap, from) => { const info = GAME.info; for (let i = 0; i < count; i++) setTimeout(() => { if (!GAME || GAME.over) return; const m = info.line[(from || 0) + i]; if (m) doMove(m); }, i * gap); };
+    const ff = n => { for (let i = 0; i < n; i++) E.play(GAME, GAME.info.line[i]); sync({ dur: 300 }); updateHud(); };
+    S().table = 0; S().reduced = false; paintTable();
+    at(0.0, () => { showScreen('title'); });
+    at(4.5, () => startGame('fc', 4, 2, false));
+    at(7.0, () => hint());
+    at(9.0, () => { HINT = null; playLine(14, 420); });
+    at(16.0, () => { S().table = 1; paintTable(); startGame('sp', 2, 8, false, { after: () => { let k = 0; const L = GAME.info.line; const tmp = E.newGame(GAME.info); for (; k < L.length; k++) { const before = tmp.state.runs.length; E.play(tmp, L[k]); if (tmp.state.runs.length > before) break; } GAME.__runAt = k; } }); });
+    at(18.5, () => { const k = GAME.__runAt || 0; ff(Math.max(0, k - 5)); });
+    at(20.0, () => playLine(6, 650, Math.max(0, (GAME.__runAt || 0) - 5)));
+    at(26.0, () => { S().table = 2; paintTable(); DIRTY = true; });
+    at(30.0, () => { S().table = 0; paintTable(); DIRTY = true; });
+    at(33.0, () => { S().table = 1; paintTable(); DIRTY = true; });
+    at(35.0, () => { DATA.daily[todayNum(0)] = 1; dailyPanel(); });
+    at(37.5, () => { DATA.daily[todayNum(0)] = 3; dailyPanel(); sfx('stamp'); const el = document.querySelector('.day.sel .stamp'); if (el) el.classList.add('pressed'); });
+    at(42.0, () => { closePanel(true); DATA.unlocked = 2; albumPanel(2); sfx('chime'); });
+    at(47.0, () => { closePanel(true); S().table = 0; paintTable(); startGame('fc', 4, 2, false, { instant: true, after: () => { const L = GAME.info.line; for (let i = 0; i < L.length - 6; i++) E.play(GAME, L[i]); sync({ dur: 1 }); for (const s of SPR) { s.x = s.tx; s.y = s.ty; s.dur = 0; s.moving = false; } updateHud(); } }); });
+    at(48.5, () => playLine(6, 500, GAME.info.line.length - 6));
+    at(58.0, () => { closePanel(true); showScreen('title'); toast(T.tourEnd, null, 4000); });
+    at(C.tourSeconds, () => { /* the trailer holds the title until a key or tap */ });
+    const tick = () => { if (ended) return; const el = now() - t0; while (steps.length && steps[0][0] <= el) { const [, f] = steps.shift(); try { f(); } catch (e) { console.error(e); } } if (steps.length) setTimeout(tick, 50); };
+    tick();
+  }
+  function runCover() {
+    hud.classList.add('off'); $('menu').classList.add('hidden'); $('title').classList.add('cover'); showScreen('title'); $('menu').classList.add('hidden'); sizeFan();
+  }
+
+  /* ---------- start ---------- */
+  labels();
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(frame);
+  if (MODE === 'tour') { runTour(); return; }
+  if (MODE === 'cover') { runCover(); return; }
+  if (DATA.current && DATA.current.started) {
+    const cur = DATA.current; startGame(cur.kind, cur.suits, cur.deal, cur.daily, { resume: cur, after: () => toast(T.resumed, null, 2500) });
+  } else showScreen('title');
+  if (loaded.recovered) setTimeout(() => toast(T.recovered, null, 6000), 300);
+})();
+
+</script>
+</body>
+</html>
